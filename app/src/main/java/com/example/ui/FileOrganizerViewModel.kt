@@ -26,6 +26,7 @@ import com.example.data.system.DeviceDiagnosticsProvider
 import com.example.data.worker.Sha256WorkerScheduler
 import com.example.data.worker.Sha256WorkerState
 import com.example.util.NetworkMonitor
+import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -215,7 +216,8 @@ class FileOrganizerViewModel(application: Application) : AndroidViewModel(applic
             matchesQuery && matchesCategory && matchesImageSubtype && matchesTag
         }
         sortFilesList(filtered, sortOption, autoSort)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    }.flowOn(kotlinx.coroutines.Dispatchers.Default)
+     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Group duplicates strictly by SHA-256 content hash
     val duplicateGroups: StateFlow<List<DuplicateGroup>> = allFiles.combine(isScanning) { files, _ ->
@@ -393,6 +395,27 @@ class FileOrganizerViewModel(application: Application) : AndroidViewModel(applic
             if (updatedList.isNotEmpty()) {
                 repository.updateFiles(updatedList)
                 _userMessage.value = "Applied batch operations to ${updatedList.size} duplicate files!"
+            }
+        }
+    }
+
+    fun verifyFileIntegrity(file: FileMetadata) {
+        viewModelScope.launch {
+            try {
+                val actualFile = File(file.uri.removePrefix("file://"))
+                if (!actualFile.exists()) {
+                    _userMessage.value = "File not found!"
+                    return@launch
+                }
+                
+                val calculatedHash = com.example.util.HashUtil.calculateHash(actualFile, file.contentHashAlgorithm)
+                if (calculatedHash == file.fileHash) {
+                    _userMessage.value = "Integrity verified: Hash matches!"
+                } else {
+                    _userMessage.value = "Integrity check failed: Hash mismatch!"
+                }
+            } catch (e: Exception) {
+                _userMessage.value = "Verification failed: ${e.message}"
             }
         }
     }
