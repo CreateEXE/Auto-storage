@@ -47,13 +47,21 @@ fun WidgetContainer(
     icon: ImageVector,
     iconColor: Color,
     onRemove: (() -> Unit)? = null,
+    isHeld: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .border(
+                width = if (isHeld) 1.5.dp else 1.dp,
+                color = if (isHeld) CyberCyan else SteelBorder.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(16.dp)
+            )
             .metallicPanel(cornerRadius = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = SteelSurface.copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(
+            containerColor = if (isHeld) SteelSurfaceElevated else SteelSurface.copy(alpha = 0.5f)
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -62,6 +70,14 @@ fun WidgetContainer(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.DragIndicator,
+                        contentDescription = "Hold to drag",
+                        tint = if (isHeld) CyberCyan else TextSteelMuted.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .size(16.dp)
+                            .padding(end = 4.dp)
+                    )
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
@@ -73,7 +89,7 @@ fun WidgetContainer(
                         text = title.uppercase(),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Black,
-                        color = TextSilver,
+                        color = if (isHeld) CyberCyan else TextSilver,
                         letterSpacing = 1.sp
                     )
                 }
@@ -103,13 +119,15 @@ fun WidgetContainer(
 fun SearchWidget(
     query: String,
     onQueryChange: (String) -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    isHeld: Boolean = false
 ) {
     WidgetContainer(
         title = "Universal Search",
         icon = Icons.Default.Search,
         iconColor = CyberCyan,
-        onRemove = onRemove
+        onRemove = onRemove,
+        isHeld = isHeld
     ) {
         OutlinedTextField(
             value = query,
@@ -180,13 +198,15 @@ fun StorageBreakdownChart(categorySizes: Map<FileCategory, Long>) {
 @Composable
 fun StorageInfoWidget(
     stats: StorageStats,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    isHeld: Boolean = false
 ) {
     WidgetContainer(
         title = "Storage Analyzer",
         icon = Icons.Default.Storage,
         iconColor = LaserEmerald,
-        onRemove = onRemove
+        onRemove = onRemove,
+        isHeld = isHeld
     ) {
         StorageDashboardCard(
             stats = stats,
@@ -213,13 +233,15 @@ fun QuickActionsWidget(
     onScan: () -> Unit,
     onClean: () -> Unit,
     onOrganize: () -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    isHeld: Boolean = false
 ) {
     WidgetContainer(
         title = "System Actions",
         icon = Icons.Default.Bolt,
         iconColor = Color.Yellow,
-        onRemove = onRemove
+        onRemove = onRemove,
+        isHeld = isHeld
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -280,13 +302,15 @@ fun QuickActionButton(
 fun RecentFilesWidget(
     files: List<FileMetadata>,
     onFileClick: (FileMetadata) -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    isHeld: Boolean = false
 ) {
     WidgetContainer(
         title = "Recent Entities",
         icon = Icons.Default.History,
         iconColor = SecondaryTeal,
-        onRemove = onRemove
+        onRemove = onRemove,
+        isHeld = isHeld
     ) {
         if (files.isEmpty()) {
             Text("No recent files discovered.", color = TextSteelMuted, style = MaterialTheme.typography.bodySmall)
@@ -334,13 +358,15 @@ fun RecentFilesWidget(
 fun VaultStatusWidget(
     isLocked: Boolean,
     onClick: () -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    isHeld: Boolean = false
 ) {
     WidgetContainer(
         title = "Mimic Vault",
         icon = Icons.Default.Lock,
         iconColor = if (isLocked) DangerRed else LaserEmerald,
-        onRemove = onRemove
+        onRemove = onRemove,
+        isHeld = isHeld
     ) {
         Surface(
             onClick = onClick,
@@ -381,7 +407,8 @@ fun VaultStatusWidget(
 fun DeviceSpecsWidget(
     diagnostics: DeviceDiagnostics,
     onOpenDiagnostics: () -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    isHeld: Boolean = false
 ) {
     val levelColor = when (diagnostics.lagAssessment.impactLevel) {
         StorageImpactLevel.OPTIMAL -> LaserEmerald
@@ -394,7 +421,8 @@ fun DeviceSpecsWidget(
         title = "System & RAM Health",
         icon = Icons.Default.Memory,
         iconColor = CyberCyan,
-        onRemove = onRemove
+        onRemove = onRemove,
+        isHeld = isHeld
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),

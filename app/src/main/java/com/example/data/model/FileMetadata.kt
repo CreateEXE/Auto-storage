@@ -50,7 +50,11 @@ data class FileMetadata(
 
     // Image Nuanced Classification Subtype
     // Values: "SCREENSHOT", "PRODUCT_DESIGN", "INFORMATION", "CAMERA_PHOTO", "WALLPAPER", "MEME", "OTHER"
-    val imageSubtype: String? = null
+    val imageSubtype: String? = null,
+
+    // 3D Model Metadata Cache
+    val modelType: String? = null, // "VRM", "GLB"
+    val modelPreviewPath: String? = null
 ) {
     val tagList: List<String>
         get() = if (tags.isBlank()) emptyList() else tags.split(",").map { it.trim() }.filter { it.isNotEmpty() }

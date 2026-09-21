@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -55,6 +56,7 @@ import com.example.ui.theme.SecondaryTeal
 import com.example.ui.theme.SteelBorder
 import com.example.ui.theme.SteelSurface
 import com.example.ui.theme.SteelSurfaceContainer
+import com.example.ui.theme.SteelSurfaceElevated
 import com.example.ui.theme.SteelSurfaceVariant
 import com.example.ui.theme.TextSilver
 import com.example.ui.theme.TextSteelMuted
@@ -70,7 +72,9 @@ fun FileCard(
     file: FileMetadata,
     onClick: () -> Unit,
     onQuickRename: (suggestedName: String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isHeld: Boolean = false,
+    showDetails: Boolean = false
 ) {
     val category = try {
         FileCategory.valueOf(file.category)
@@ -85,27 +89,34 @@ fun FileCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .border(
+                width = if (isHeld) 1.5.dp else 1.dp,
+                color = if (isHeld) CyberCyan else SteelBorder.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(14.dp)
+            )
             .metallicPanel(cornerRadius = 14.dp, showBolts = false)
             .clickable(onClick = onClick)
             .testTag("file_card_${file.id}"),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isHeld) SteelSurfaceElevated else Color.Transparent
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isHeld) 8.dp else 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             // Top Row: Category Icon, Filename, Size, Duplicate / Status Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // Category Icon
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(40.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(
                             when (category) {
@@ -128,7 +139,7 @@ fun FileCard(
                             FileCategory.IMAGES -> LaserEmerald
                             else -> category.color
                         },
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
@@ -140,25 +151,19 @@ fun FileCard(
                         text = file.currentName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextSilver,
-                        maxLines = 2,
+                        color = if (isHeld) CyberCyan else TextSilver,
+                        maxLines = if (showDetails) 3 else 1,
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarToday,
-                            contentDescription = "Date",
-                            tint = TextSteelMuted,
-                            modifier = Modifier.size(11.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = formattedDate,
+                            text = file.formattedSize,
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextSteelSecondary,
+                            color = TextSilver,
+                            fontWeight = FontWeight.Medium,
                             fontSize = 11.sp
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -170,10 +175,9 @@ fun FileCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = file.formattedSize,
+                            text = formattedDate,
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextSilver,
-                            fontWeight = FontWeight.Medium,
+                            color = TextSteelSecondary,
                             fontSize = 11.sp
                         )
                     }
@@ -252,137 +256,18 @@ fun FileCard(
                 }
             }
 
-            // Music rich tags display if audio
-            if (file.category == "AUDIO" && (!file.artist.isNullOrBlank() || !file.album.isNullOrBlank())) {
+            // Optional Expanded Details (Smart suggestion banner or tags if requested)
+            if (hasSuggestedRename) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = SteelSurfaceContainer,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Album,
-                            contentDescription = null,
-                            tint = CyberCyan,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = buildString {
-                                if (!file.artist.isNullOrBlank()) append(file.artist)
-                                if (!file.album.isNullOrBlank()) append(" • ${file.album}")
-                                if (file.trackNumber != null) append(" • Trk #${file.trackNumber}")
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = CyberCyan,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        if (!file.genre.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.weight(1f))
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = CyberCyan.copy(alpha = 0.15f)
-                            ) {
-                                Text(
-                                    text = file.genre!!,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = CyberCyan,
-                                    fontSize = 9.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Image Subtype badge if image
-            if (file.category == "IMAGES" && !file.imageSubtype.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    val subtypeName = when (file.imageSubtype) {
-                        "SCREENSHOT" -> "Screenshot"
-                        "PRODUCT_DESIGN" -> "Product Design / Wireframe"
-                        "INFORMATION" -> "Information / Infographic"
-                        "CAMERA_PHOTO" -> "Camera Photo"
-                        "WALLPAPER" -> "Wallpaper"
-                        else -> file.imageSubtype!!
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = LaserEmerald.copy(alpha = 0.15f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, LaserEmerald.copy(alpha = 0.4f))
-                    ) {
-                        Text(
-                            text = "SUBTYPE: $subtypeName",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = LaserEmerald,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp
-                        )
-                    }
-                }
-            }
-
-            // Content hash snippet badge
-            if (file.fileHash.isNotBlank()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Fingerprint,
-                        contentDescription = "Content Hash",
-                        tint = TextSteelMuted,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "SHA-256: ${file.fileHash.take(12)}...${file.fileHash.takeLast(4)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = TextSteelMuted,
-                        fontSize = 10.sp
-                    )
-                    if (file.organizationFolder.isNotBlank()) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(
-                            imageVector = Icons.Default.Folder,
-                            contentDescription = null,
-                            tint = TextSteelMuted,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = file.organizationFolder,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSteelMuted,
-                            fontSize = 10.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-
-            // Smart Suggested Rename Banner if available
-            if (hasSuggestedRename) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
                     color = CyberCyan.copy(alpha = 0.10f),
                     border = androidx.compose.foundation.BorderStroke(1.dp, CyberCyan.copy(alpha = 0.3f))
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                            .padding(horizontal = 10.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -394,7 +279,7 @@ fun FileCard(
                                 imageVector = Icons.Default.AutoFixHigh,
                                 contentDescription = "Suggested Rename",
                                 tint = CyberCyan,
-                                modifier = Modifier.size(15.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
@@ -403,75 +288,140 @@ fun FileCard(
                                 color = CyberCyan,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
+                                fontSize = 11.sp
                             )
                         }
 
                         FilledTonalButton(
                             onClick = { onQuickRename(file.suggestedName) },
                             modifier = Modifier
-                                .height(28.dp)
+                                .height(26.dp)
                                 .testTag("quick_rename_button_${file.id}"),
                             colors = ButtonDefaults.filledTonalButtonColors(
                                 containerColor = CyberCyan.copy(alpha = 0.25f),
                                 contentColor = CyberCyan
                             ),
-                            contentPadding = ButtonDefaults.TextButtonContentPadding
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                         ) {
-                            Text("Rename", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("Rename", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
 
-            // Summary / Information preview if present
-            if (file.extractedSummary.isNotBlank()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = file.extractedSummary,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSteelSecondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    fontSize = 11.sp
-                )
-            }
-
-            // Tags row
-            if (file.tagList.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    for (tag in file.tagList.take(5)) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = SteelSurfaceContainer,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, SteelBorder)
+            // Detailed telemetry & metadata only in expanded mode to keep the regular UI ultra-clean
+            if (showDetails) {
+                // Music rich tags display if audio
+                if (file.category == "AUDIO" && (!file.artist.isNullOrBlank() || !file.album.isNullOrBlank())) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = SteelSurfaceContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.Album,
+                                contentDescription = null,
+                                tint = CyberCyan,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "#$tag",
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = SecondaryTeal,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Medium
+                                text = buildString {
+                                    if (!file.artist.isNullOrBlank()) append(file.artist)
+                                    if (!file.album.isNullOrBlank()) append(" • ${file.album}")
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CyberCyan,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
-                    if (file.tagList.size > 5) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = SteelSurfaceContainer
-                        ) {
-                            Text(
-                                text = "+${file.tagList.size - 5}",
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextSteelMuted,
-                                fontSize = 10.sp
-                            )
+                }
+
+                // Image Subtype badge if image
+                if (file.category == "IMAGES" && !file.imageSubtype.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = LaserEmerald.copy(alpha = 0.15f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, LaserEmerald.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            text = "TYPE: ${file.imageSubtype}",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = LaserEmerald,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 9.sp
+                        )
+                    }
+                }
+
+                // Content hash snippet badge
+                if (file.fileHash.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Fingerprint,
+                            contentDescription = "Content Hash",
+                            tint = TextSteelMuted,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "SHA-256: ${file.fileHash.take(10)}...${file.fileHash.takeLast(4)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = TextSteelMuted,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
+                // Summary / Information preview if present
+                if (file.extractedSummary.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = file.extractedSummary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSteelSecondary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 11.sp
+                    )
+                }
+
+                // Tags row
+                if (file.tagList.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        for (tag in file.tagList.take(4)) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = SteelSurfaceContainer,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SteelBorder)
+                            ) {
+                                Text(
+                                    text = "#$tag",
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = SecondaryTeal,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                 }

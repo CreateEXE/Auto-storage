@@ -205,18 +205,6 @@ fun HomeScreen(
                 ),
                 modifier = Modifier.border(0.dp, Color.Transparent).metallicPanel(cornerRadius = 0.dp, showBolts = true),
                 actions = {
-                    // Pick Folder SAF
-                    IconButton(
-                        onClick = { folderPickerLauncher.launch(null) },
-                        modifier = Modifier.testTag("open_saf_folder_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FolderOpen,
-                            contentDescription = "Select Storage Folder",
-                            tint = CyberCyan
-                        )
-                    }
-
                     // Rescan Files Button
                     IconButton(
                         onClick = { viewModel.scanSampleStorage() },
@@ -225,30 +213,6 @@ fun HomeScreen(
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Scan Storage",
-                            tint = TextSilver
-                        )
-                    }
-
-                    // Device Specs & System Lag Telemetry
-                    IconButton(
-                        onClick = { showDeviceSpecsScreen = true },
-                        modifier = Modifier.testTag("top_bar_specs_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Speed,
-                            contentDescription = "Device Specs & Storage Lag",
-                            tint = LaserEmerald
-                        )
-                    }
-
-                    // Settings Screen Button
-                    IconButton(
-                        onClick = { showSettingsScreen = true },
-                        modifier = Modifier.testTag("top_bar_settings_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
                             tint = CyberCyan
                         )
                     }
@@ -270,6 +234,16 @@ fun HomeScreen(
                             expanded = showDropdownMenu,
                             onDismissRequest = { showDropdownMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Select Storage Folder (SAF)") },
+                                onClick = {
+                                    showDropdownMenu = false
+                                    folderPickerLauncher.launch(null)
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.FolderOpen, contentDescription = null, tint = CyberCyan)
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Device Specs & RAM / Storage Impact") },
                                 onClick = {
@@ -503,6 +477,7 @@ fun HomeScreen(
                     onVaultClick = { viewModel.setCurrentTab(5) },
                     onFileClick = { selectedFileForDetail = it },
                     onRemoveWidget = { viewModel.toggleDashboardWidget(it) },
+                    onReorderWidgets = { viewModel.reorderDashboardWidgets(it) },
                     onAddWidgetClick = { showWidgetPicker = true },
                     diagnostics = deviceDiagnostics,
                     onOpenDiagnostics = { showDeviceSpecsScreen = true }
@@ -674,58 +649,116 @@ private fun DashboardTab(
     onVaultClick: () -> Unit,
     onFileClick: (FileMetadata) -> Unit,
     onRemoveWidget: (DashboardWidget) -> Unit,
+    onReorderWidgets: (List<DashboardWidget>) -> Unit,
     onAddWidgetClick: () -> Unit,
     diagnostics: com.example.data.system.DeviceDiagnostics,
     onOpenDiagnostics: () -> Unit
 ) {
+    var accumulatedDeltaY by remember { mutableFloatStateOf(0f) }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text(
-                text = "COMMAND CENTER",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = LaserEmerald,
-                letterSpacing = 2.sp
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "COMMAND CENTER",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = LaserEmerald,
+                    letterSpacing = 2.sp
+                )
+                Text(
+                    text = "HOLD & DRAG TO REORDER",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSteelMuted,
+                    fontSize = 9.sp
+                )
+            }
         }
 
-        items(widgets) { widget ->
-            when (widget) {
-                DashboardWidget.SEARCH_BAR -> SearchWidget(
-                    query = searchQuery,
-                    onQueryChange = onSearchQueryChange,
-                    onRemove = { onRemoveWidget(widget) }
-                )
-                DashboardWidget.STORAGE_INFO -> StorageInfoWidget(
-                    stats = storageStats,
-                    onRemove = { onRemoveWidget(widget) }
-                )
-                DashboardWidget.DEVICE_SPECS -> DeviceSpecsWidget(
-                    diagnostics = diagnostics,
-                    onOpenDiagnostics = onOpenDiagnostics,
-                    onRemove = { onRemoveWidget(widget) }
-                )
-                DashboardWidget.QUICK_ACTIONS -> QuickActionsWidget(
-                    onScan = onScan,
-                    onClean = onClean,
-                    onOrganize = onOrganize,
-                    onRemove = { onRemoveWidget(widget) }
-                )
-                DashboardWidget.RECENT_FILES -> RecentFilesWidget(
-                    files = recentFiles,
-                    onFileClick = onFileClick,
-                    onRemove = { onRemoveWidget(widget) }
-                )
-                DashboardWidget.VAULT_STATUS -> VaultStatusWidget(
-                    isLocked = isVaultLocked,
-                    onClick = onVaultClick,
-                    onRemove = { onRemoveWidget(widget) }
-                )
-                else -> { /* Other widgets handled as needed */ }
+        itemsIndexed(widgets, key = { _, widget -> widget.name }) { index, widget ->
+            val widgetName = when (widget) {
+                DashboardWidget.SEARCH_BAR -> "Search & Filter"
+                DashboardWidget.STORAGE_INFO -> "Storage Breakdown"
+                DashboardWidget.DEVICE_SPECS -> "System & RAM Health"
+                DashboardWidget.QUICK_ACTIONS -> "Quick Action Controls"
+                DashboardWidget.RECENT_FILES -> "Recent Files"
+                DashboardWidget.VAULT_STATUS -> "Secure Vault"
+                else -> widget.title
+            }
+
+            LongPressDraggableItem(
+                itemName = widgetName,
+                itemCategory = "DASHBOARD WIDGET",
+                onDragDelta = { deltaY ->
+                    accumulatedDeltaY += deltaY
+                    val threshold = 220f
+                    if (accumulatedDeltaY > threshold && index < widgets.size - 1) {
+                        // Move down
+                        val mutable = widgets.toMutableList()
+                        val item = mutable.removeAt(index)
+                        mutable.add(index + 1, item)
+                        onReorderWidgets(mutable)
+                        accumulatedDeltaY = 0f
+                    } else if (accumulatedDeltaY < -threshold && index > 0) {
+                        // Move up
+                        val mutable = widgets.toMutableList()
+                        val item = mutable.removeAt(index)
+                        mutable.add(index - 1, item)
+                        onReorderWidgets(mutable)
+                        accumulatedDeltaY = 0f
+                    }
+                },
+                onDragFinished = {
+                    accumulatedDeltaY = 0f
+                }
+            ) { isHeld ->
+                when (widget) {
+                    DashboardWidget.SEARCH_BAR -> SearchWidget(
+                        query = searchQuery,
+                        onQueryChange = onSearchQueryChange,
+                        onRemove = { onRemoveWidget(widget) },
+                        isHeld = isHeld
+                    )
+                    DashboardWidget.STORAGE_INFO -> StorageInfoWidget(
+                        stats = storageStats,
+                        onRemove = { onRemoveWidget(widget) },
+                        isHeld = isHeld
+                    )
+                    DashboardWidget.DEVICE_SPECS -> DeviceSpecsWidget(
+                        diagnostics = diagnostics,
+                        onOpenDiagnostics = onOpenDiagnostics,
+                        onRemove = { onRemoveWidget(widget) },
+                        isHeld = isHeld
+                    )
+                    DashboardWidget.QUICK_ACTIONS -> QuickActionsWidget(
+                        onScan = onScan,
+                        onClean = onClean,
+                        onOrganize = onOrganize,
+                        onRemove = { onRemoveWidget(widget) },
+                        isHeld = isHeld
+                    )
+                    DashboardWidget.RECENT_FILES -> RecentFilesWidget(
+                        files = recentFiles,
+                        onFileClick = onFileClick,
+                        onRemove = { onRemoveWidget(widget) },
+                        isHeld = isHeld
+                    )
+                    DashboardWidget.VAULT_STATUS -> VaultStatusWidget(
+                        isLocked = isVaultLocked,
+                        onClick = onVaultClick,
+                        onRemove = { onRemoveWidget(widget) },
+                        isHeld = isHeld
+                    )
+                    else -> { /* Other widgets handled as needed */ }
+                }
             }
         }
 
@@ -818,6 +851,9 @@ private fun FilesTab(
     onFileClick: (FileMetadata) -> Unit,
     onQuickRename: (FileMetadata, String) -> Unit
 ) {
+    var showFilterBar by remember { mutableStateOf(false) }
+    var showAllDetails by remember { mutableStateOf(false) }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -861,7 +897,7 @@ private fun FilesTab(
             )
         }
 
-        // 2. Auto-Sort & Quick Sorting Controls Bar
+        // 2. Streamlined Controls Bar: Sort Chip, Filter Toggle, Compact Details Toggle
         item {
             Row(
                 modifier = Modifier
@@ -873,40 +909,6 @@ private fun FilesTab(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Auto-Sort Mode toggle chip
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (autoSortEnabled) LaserEmerald.copy(alpha = 0.15f)
-                            else SteelSurfaceVariant.copy(alpha = 0.4f)
-                        )
-                        .border(
-                            1.dp,
-                            if (autoSortEnabled) LaserEmerald.copy(alpha = 0.5f) else SteelBorder,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .clickable { onToggleAutoSort(!autoSortEnabled) }
-                        .padding(horizontal = 8.dp, vertical = 5.dp)
-                        .testTag("auto_sort_quick_toggle"),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoFixHigh,
-                        contentDescription = null,
-                        tint = if (autoSortEnabled) LaserEmerald else TextSteelMuted,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (autoSortEnabled) "Auto-Sort: ON" else "Auto-Sort: OFF",
-                        color = if (autoSortEnabled) LaserEmerald else TextSteelMuted,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
-                    )
-                }
-
                 // Active Sort Criterion Chip
                 Row(
                     modifier = Modifier
@@ -933,125 +935,228 @@ private fun FilesTab(
                     )
                 }
 
-                // Auto-Sort All button
-                Box(
+                // Filter expand/collapse toggle
+                Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(LaserEmerald)
-                        .clickable { onAutoSortAll() }
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                        .testTag("quick_auto_sort_all_button"),
-                    contentAlignment = Alignment.Center
+                        .background(
+                            if (showFilterBar || selectedCategory != null || selectedTag != null) CyberCyan.copy(alpha = 0.15f)
+                            else SteelSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                        .border(
+                            1.dp,
+                            if (showFilterBar || selectedCategory != null || selectedTag != null) CyberCyan.copy(alpha = 0.5f) else SteelBorder,
+                            RoundedCornerShape(8.dp)
+                        )
+                        .clickable { showFilterBar = !showFilterBar }
+                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Icon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = null,
+                        tint = if (showFilterBar || selectedCategory != null || selectedTag != null) CyberCyan else TextSteelMuted,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Sort All",
-                        color = SteelBackground,
+                        text = if (selectedCategory != null) selectedCategory.title else if (selectedTag != null) "#$selectedTag" else "Filters",
+                        color = if (showFilterBar || selectedCategory != null || selectedTag != null) CyberCyan else TextSteelMuted,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
-            }
-        }
 
-        // 2. Category Filter Chips Row
-        item {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                item {
-                    FilterChip(
-                        selected = selectedCategory == null,
-                        onClick = { onSelectCategory(null) },
-                        label = { Text("All Files", fontSize = 11.sp) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = CyberCyan.copy(alpha = 0.25f),
-                            selectedLabelColor = CyberCyan,
-                            containerColor = SteelSurface,
-                            labelColor = TextSteelSecondary
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = selectedCategory == null,
-                            borderColor = if (selectedCategory == null) CyberCyan else SteelBorder
-                        ),
-                        modifier = Modifier.testTag("filter_all")
-                    )
-                }
-
-                items(FileCategory.values()) { category ->
-                    FilterChip(
-                        selected = selectedCategory == category,
-                        onClick = { onSelectCategory(category) },
-                        label = { Text(category.title, fontSize = 11.sp) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = category.icon,
-                                contentDescription = category.title,
-                                modifier = Modifier.size(15.dp)
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = category.color.copy(alpha = 0.25f),
-                            selectedLabelColor = category.color,
-                            containerColor = SteelSurface,
-                            labelColor = TextSteelSecondary
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = selectedCategory == category,
-                            borderColor = if (selectedCategory == category) category.color else SteelBorder
-                        ),
-                        modifier = Modifier.testTag("filter_${category.name.lowercase()}")
-                    )
-                }
-            }
-        }
-
-        // 3. Image Subtype sub-filter row (Screenshots, Product Designs, Infographics, Camera Photos)
-        if (selectedCategory == null || selectedCategory == FileCategory.IMAGES) {
-            item {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = SteelSurfaceContainer,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SteelBorder)
-                ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        Text(
-                            text = "IMAGE CLASSIFICATION FILTER",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = LaserEmerald,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 9.sp,
-                            letterSpacing = 0.5.sp
+                // Toggle detailed view vs clean list view
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (showAllDetails) LaserEmerald.copy(alpha = 0.15f)
+                            else SteelSurfaceVariant.copy(alpha = 0.4f)
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        .border(
+                            1.dp,
+                            if (showAllDetails) LaserEmerald.copy(alpha = 0.5f) else SteelBorder,
+                            RoundedCornerShape(8.dp)
+                        )
+                        .clickable { showAllDetails = !showAllDetails }
+                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (showAllDetails) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                        contentDescription = null,
+                        tint = if (showAllDetails) LaserEmerald else TextSteelMuted,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (showAllDetails) "Details" else "Compact",
+                        color = if (showAllDetails) LaserEmerald else TextSteelMuted,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        // 3. Category Filter Chips Row (Expandable when filters requested or active)
+        if (showFilterBar || selectedCategory != null || selectedTag != null) {
+            item {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedCategory == null,
+                            onClick = { onSelectCategory(null) },
+                            label = { Text("All Files", fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = CyberCyan.copy(alpha = 0.25f),
+                                selectedLabelColor = CyberCyan,
+                                containerColor = SteelSurface,
+                                labelColor = TextSteelSecondary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = selectedCategory == null,
+                                borderColor = if (selectedCategory == null) CyberCyan else SteelBorder
+                            ),
+                            modifier = Modifier.testTag("filter_all")
+                        )
+                    }
+
+                    items(FileCategory.values()) { category ->
+                        FilterChip(
+                            selected = selectedCategory == category,
+                            onClick = { onSelectCategory(category) },
+                            label = { Text(category.title, fontSize = 11.sp) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = category.icon,
+                                    contentDescription = category.title,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = category.color.copy(alpha = 0.25f),
+                                selectedLabelColor = category.color,
+                                containerColor = SteelSurface,
+                                labelColor = TextSteelSecondary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = selectedCategory == category,
+                                borderColor = if (selectedCategory == category) category.color else SteelBorder
+                            ),
+                            modifier = Modifier.testTag("filter_${category.name.lowercase()}")
+                        )
+                    }
+                }
+            }
+
+            // Image Subtype sub-filter row (Screenshots, Product Designs, Infographics, Camera Photos)
+            if (selectedCategory == null || selectedCategory == FileCategory.IMAGES) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = SteelSurfaceContainer,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, SteelBorder)
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Text(
+                                text = "IMAGE CLASSIFICATION FILTER",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = LaserEmerald,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                val subtypes = listOf(
+                                    null to "All Subtypes",
+                                    "SCREENSHOT" to "Screenshots",
+                                    "PRODUCT_DESIGN" to "Product Designs",
+                                    "INFORMATION" to "Information",
+                                    "CAMERA_PHOTO" to "Camera Photos"
+                                )
+                                items(subtypes) { (key, label) ->
+                                    FilterChip(
+                                        selected = selectedImageSubtype == key,
+                                        onClick = { onSelectImageSubtype(key) },
+                                        label = { Text(label, fontSize = 10.sp) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = LaserEmerald.copy(alpha = 0.25f),
+                                            selectedLabelColor = LaserEmerald,
+                                            containerColor = SteelSurface,
+                                            labelColor = TextSteelSecondary
+                                        ),
+                                        border = FilterChipDefaults.filterChipBorder(
+                                            enabled = true,
+                                            selected = selectedImageSubtype == key,
+                                            borderColor = if (selectedImageSubtype == key) LaserEmerald else SteelBorder
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Tags Filter Row (if tags exist)
+            if (allTags.isNotEmpty()) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalOffer,
+                            contentDescription = "Tags",
+                            tint = SecondaryTeal,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Tags: ",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSteelMuted,
+                            fontSize = 11.sp
+                        )
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            val subtypes = listOf(
-                                null to "All Subtypes",
-                                "SCREENSHOT" to "Screenshots",
-                                "PRODUCT_DESIGN" to "Product Designs",
-                                "INFORMATION" to "Information",
-                                "CAMERA_PHOTO" to "Camera Photos"
-                            )
-                            items(subtypes) { (key, label) ->
+                            item {
                                 FilterChip(
-                                    selected = selectedImageSubtype == key,
-                                    onClick = { onSelectImageSubtype(key) },
-                                    label = { Text(label, fontSize = 10.sp) },
+                                    selected = selectedTag == null,
+                                    onClick = { onSelectTag(null) },
+                                    label = { Text("Any Tag", fontSize = 10.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = LaserEmerald.copy(alpha = 0.25f),
-                                        selectedLabelColor = LaserEmerald,
+                                        selectedContainerColor = SecondaryTeal.copy(alpha = 0.25f),
+                                        selectedLabelColor = SecondaryTeal,
                                         containerColor = SteelSurface,
                                         labelColor = TextSteelSecondary
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = selectedImageSubtype == key,
-                                        borderColor = if (selectedImageSubtype == key) LaserEmerald else SteelBorder
+                                    )
+                                )
+                            }
+                            items(allTags.take(12)) { tag ->
+                                FilterChip(
+                                    selected = selectedTag == tag,
+                                    onClick = { onSelectTag(if (selectedTag == tag) null else tag) },
+                                    label = { Text("#$tag", fontSize = 10.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = SecondaryTeal.copy(alpha = 0.25f),
+                                        selectedLabelColor = SecondaryTeal,
+                                        containerColor = SteelSurface,
+                                        labelColor = TextSteelSecondary
                                     )
                                 )
                             }
@@ -1061,58 +1166,27 @@ private fun FilesTab(
             }
         }
 
-        // 4. Tags Filter Row (if tags exist)
-        if (allTags.isNotEmpty()) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocalOffer,
-                        contentDescription = "Tags",
-                        tint = SecondaryTeal,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Tags Filter: ",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = TextSteelMuted,
-                        fontSize = 11.sp
-                    )
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        item {
-                            FilterChip(
-                                selected = selectedTag == null,
-                                onClick = { onSelectTag(null) },
-                                label = { Text("Any Tag", fontSize = 10.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = SecondaryTeal.copy(alpha = 0.25f),
-                                    selectedLabelColor = SecondaryTeal,
-                                    containerColor = SteelSurface,
-                                    labelColor = TextSteelSecondary
-                                )
-                            )
-                        }
-                        items(allTags.take(12)) { tag ->
-                            FilterChip(
-                                selected = selectedTag == tag,
-                                onClick = { onSelectTag(if (selectedTag == tag) null else tag) },
-                                label = { Text("#$tag", fontSize = 10.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = SecondaryTeal.copy(alpha = 0.25f),
-                                    selectedLabelColor = SecondaryTeal,
-                                    containerColor = SteelSurface,
-                                    labelColor = TextSteelSecondary
-                                )
-                            )
-                        }
-                    }
-                }
+        // Files List Header / Hint
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${files.size} FILES",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSilver,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = "PRESS & HOLD TO PICK UP",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = CyberCyan.copy(alpha = 0.8f),
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
 
@@ -1158,11 +1232,19 @@ private fun FilesTab(
             }
         } else {
             items(files, key = { it.id }) { file ->
-                FileCard(
-                    file = file,
-                    onClick = { onFileClick(file) },
-                    onQuickRename = { newName -> onQuickRename(file, newName) }
-                )
+                LongPressDraggableItem(
+                    itemName = file.currentName,
+                    itemCategory = file.category,
+                    enableDrag = true
+                ) { isHeld ->
+                    FileCard(
+                        file = file,
+                        onClick = { onFileClick(file) },
+                        onQuickRename = { newName -> onQuickRename(file, newName) },
+                        isHeld = isHeld,
+                        showDetails = showAllDetails
+                    )
+                }
             }
         }
     }

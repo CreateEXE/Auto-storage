@@ -351,9 +351,54 @@ class FileOrganizerViewModel(application: Application) : AndroidViewModel(applic
         FileScanService.startScan(getApplication())
     }
 
+    fun applyBatchOperationsToDuplicates(
+        file: FileMetadata,
+        renameRule: RenamingRuleEntity?,
+        tags: String?
+    ) {
+        viewModelScope.launch {
+            val duplicateFiles = repository.getFilesByHash(file.fileHash)
+            if (duplicateFiles.isEmpty()) return@launch
+
+            val updatedList = mutableListOf<FileMetadata>()
+
+            for (f in duplicateFiles) {
+                var updatedFile = f
+                
+                // Apply renaming rule
+                if (renameRule != null) {
+                    val newName = RuleEngine.applyRule(f, renameRule)
+                    if (newName != f.currentName) {
+                        try {
+                            val updatedUri = scannerEngine.renamePhysicalFile(f, newName)
+                            updatedFile = updatedFile.copy(currentName = newName, suggestedName = newName, uri = updatedUri, status = "RENAMED")
+                        } catch (e: Exception) {
+                            // continue
+                        }
+                    }
+                }
+
+                // Apply tags
+                if (!tags.isNullOrBlank()) {
+                    val existingTags = updatedFile.tagList.toMutableSet()
+                    tags.split(",").map { it.trim() }.forEach { existingTags.add(it) }
+                    updatedFile = updatedFile.copy(tags = existingTags.joinToString(", "))
+                }
+
+                if (updatedFile != f) {
+                    updatedList.add(updatedFile)
+                }
+            }
+
+            if (updatedList.isNotEmpty()) {
+                repository.updateFiles(updatedList)
+                _userMessage.value = "Applied batch operations to ${updatedList.size} duplicate files!"
+            }
+        }
+    }
+
     // ------------------------------------------------------------------------
     // DUPLICATE SELECTION & DELETION (Content Hash Comparison)
-    // ------------------------------------------------------------------------
 
     fun toggleDuplicateSelection(fileId: Long) {
         val current = _selectedDuplicateIds.value.toMutableSet()
