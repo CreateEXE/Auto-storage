@@ -27,11 +27,13 @@ import com.example.data.worker.Sha256WorkerScheduler
 import com.example.data.worker.Sha256WorkerState
 import com.example.util.NetworkMonitor
 import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -216,7 +218,7 @@ class FileOrganizerViewModel(application: Application) : AndroidViewModel(applic
             matchesQuery && matchesCategory && matchesImageSubtype && matchesTag
         }
         sortFilesList(filtered, sortOption, autoSort)
-    }.flowOn(kotlinx.coroutines.Dispatchers.Default)
+    }.flowOn(Dispatchers.Default)
      .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Group duplicates strictly by SHA-256 content hash
