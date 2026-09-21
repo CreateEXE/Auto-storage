@@ -1,0 +1,7 @@
+{
+  "name": "File Organizer",
+  "description": "High-tech file intelligence and organizer with dashboard customization, Vico storage breakdown chart, real-time device specs & RAM telemetry, storage system lag impact assessment, SHA-256 duplicate detection, and automated file organization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
