@@ -70,6 +70,7 @@ fun HomeScreen(
     var selectedImageSubtype by remember { mutableStateOf<String?>(null) }
     var showSettingsScreen by remember { mutableStateOf(false) }
     var showDeviceSpecsScreen by remember { mutableStateOf(false) }
+    var showTermuxManagementScreen by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -79,6 +80,7 @@ fun HomeScreen(
     val filteredFiles by viewModel.filteredFiles.collectAsStateWithLifecycle()
     val storageStats by viewModel.storageStats.collectAsStateWithLifecycle()
     val duplicateGroups by viewModel.duplicateGroups.collectAsStateWithLifecycle()
+    val storageBreakdown by viewModel.storageBreakdown.collectAsStateWithLifecycle()
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val scanProgressText by viewModel.scanProgressText.collectAsStateWithLifecycle()
     val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
@@ -97,6 +99,158 @@ fun HomeScreen(
     val sha256WorkerState by viewModel.sha256WorkerState.collectAsStateWithLifecycle()
 
     var showWidgetPicker by remember { mutableStateOf(false) }
+    var fileToDelete by remember { mutableStateOf<FileMetadata?>(null) }
+    var fileToRename by remember { mutableStateOf<FileMetadata?>(null) }
+    var fileToMove by remember { mutableStateOf<FileMetadata?>(null) }
+    var newFileName by remember { mutableStateOf("") }
+    var targetFolderName by remember { mutableStateOf("") }
+
+    if (fileToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { fileToDelete = null },
+            containerColor = SteelSurface,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = DangerRed)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Delete File?", color = TextSilver, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to permanently delete '${fileToDelete?.currentName}'? This action cannot be undone.",
+                    color = TextSteelSecondary,
+                    fontSize = 14.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        fileToDelete?.let { viewModel.deleteFile(it) }
+                        fileToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = DangerRed, contentColor = Color.White)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { fileToDelete = null },
+                    border = BorderStroke(1.dp, SteelBorder)
+                ) {
+                    Text("Cancel", color = TextSilver)
+                }
+            }
+        )
+    }
+
+    if (fileToRename != null) {
+        AlertDialog(
+            onDismissRequest = { fileToRename = null },
+            containerColor = SteelSurface,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Edit, contentDescription = null, tint = CyberCyan)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Rename File", color = TextSilver, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                OutlinedTextField(
+                    value = newFileName,
+                    onValueChange = { newFileName = it },
+                    label = { Text("New Filename") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = CyberCyan,
+                        unfocusedBorderColor = SteelBorder,
+                        focusedTextColor = TextSilver,
+                        unfocusedTextColor = TextSilver
+                    )
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        fileToRename?.let { viewModel.renameSingleFile(it, newFileName) }
+                        fileToRename = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = Color.Black)
+                ) {
+                    Text("Rename")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { fileToRename = null },
+                    border = BorderStroke(1.dp, SteelBorder)
+                ) {
+                    Text("Cancel", color = TextSilver)
+                }
+            }
+        )
+    }
+
+    if (fileToMove != null) {
+        AlertDialog(
+            onDismissRequest = { fileToMove = null },
+            containerColor = SteelSurface,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.DriveFileMove, contentDescription = null, tint = SecondaryTeal)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Move File", color = TextSilver, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column {
+                    Text("Enter target folder relative to root:", color = TextSteelMuted, fontSize = 12.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = targetFolderName,
+                        onValueChange = { targetFolderName = it },
+                        placeholder = { Text("e.g. Documents/Work") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = SecondaryTeal,
+                            unfocusedBorderColor = SteelBorder,
+                            focusedTextColor = TextSilver,
+                            unfocusedTextColor = TextSilver
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        fileToMove?.let { viewModel.moveFile(it, targetFolderName) }
+                        fileToMove = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal, contentColor = Color.Black)
+                ) {
+                    Text("Move")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { fileToMove = null },
+                    border = BorderStroke(1.dp, SteelBorder)
+                ) {
+                    Text("Cancel", color = TextSilver)
+                }
+            }
+        )
+    }
+
+    if (showTermuxManagementScreen) {
+        TermuxManagementScreen(
+            onNavigateBack = { showTermuxManagementScreen = false }
+        )
+        return
+    }
 
     if (showDeviceSpecsScreen) {
         DeviceSpecsScreen(
@@ -234,6 +388,16 @@ fun HomeScreen(
                             expanded = showDropdownMenu,
                             onDismissRequest = { showDropdownMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Termux Backend Management") },
+                                onClick = {
+                                    showDropdownMenu = false
+                                    showTermuxManagementScreen = true
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Terminal, contentDescription = null, tint = CyberCyan)
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Select Storage Folder (SAF)") },
                                 onClick = {
@@ -480,7 +644,9 @@ fun HomeScreen(
                     onReorderWidgets = { viewModel.reorderDashboardWidgets(it) },
                     onAddWidgetClick = { showWidgetPicker = true },
                     diagnostics = deviceDiagnostics,
-                    onOpenDiagnostics = { showDeviceSpecsScreen = true }
+                    onOpenDiagnostics = { showDeviceSpecsScreen = true },
+                    storageBreakdown = storageBreakdown,
+                    files = filteredFiles
                 )
 
                 1 -> FilesTab(
@@ -503,7 +669,16 @@ fun HomeScreen(
                     onToggleAutoSort = { viewModel.setAutoSortEnabled(it) },
                     onAutoSortAll = { viewModel.autoSortAllFiles() },
                     onFileClick = { selectedFileForDetail = it },
-                    onQuickRename = { file, newName -> viewModel.renameSingleFile(file, newName) }
+                    onQuickRename = { file, newName -> viewModel.renameSingleFile(file, newName) },
+                    onDeleteFile = { fileToDelete = it },
+                    onRenameFile = { file ->
+                        fileToRename = file
+                        newFileName = file.currentName
+                    },
+                    onMoveFile = { file ->
+                        fileToMove = file
+                        targetFolderName = file.organizationFolder
+                    }
                 )
 
                 2 -> DuplicatesTab(
@@ -652,7 +827,9 @@ private fun DashboardTab(
     onReorderWidgets: (List<DashboardWidget>) -> Unit,
     onAddWidgetClick: () -> Unit,
     diagnostics: com.example.data.system.DeviceDiagnostics,
-    onOpenDiagnostics: () -> Unit
+    onOpenDiagnostics: () -> Unit,
+    storageBreakdown: Map<String, Long>,
+    files: List<FileMetadata>
 ) {
     var accumulatedDeltaY by remember { mutableFloatStateOf(0f) }
 
@@ -757,6 +934,20 @@ private fun DashboardTab(
                         onRemove = { onRemoveWidget(widget) },
                         isHeld = isHeld
                     )
+                    DashboardWidget.TERMINAL -> TerminalWidget(
+                        onRemove = { onRemoveWidget(widget) },
+                        isHeld = isHeld
+                    )
+                    DashboardWidget.STORAGE_BREAKDOWN -> StorageBreakdownWidget(
+                        storageBreakdown = storageBreakdown,
+                        onRemove = { onRemoveWidget(widget) },
+                        isHeld = isHeld
+                    )
+                    DashboardWidget.TREEMAP -> TreemapWidget(
+                        files = files,
+                        onRemove = { onRemoveWidget(widget) },
+                        isHeld = isHeld
+                    )
                     else -> { /* Other widgets handled as needed */ }
                 }
             }
@@ -849,7 +1040,10 @@ private fun FilesTab(
     onToggleAutoSort: (Boolean) -> Unit,
     onAutoSortAll: () -> Unit,
     onFileClick: (FileMetadata) -> Unit,
-    onQuickRename: (FileMetadata, String) -> Unit
+    onQuickRename: (FileMetadata, String) -> Unit,
+    onDeleteFile: (FileMetadata) -> Unit,
+    onRenameFile: (FileMetadata) -> Unit,
+    onMoveFile: (FileMetadata) -> Unit
 ) {
     var showFilterBar by remember { mutableStateOf(false) }
     var showAllDetails by remember { mutableStateOf(false) }
@@ -1241,6 +1435,9 @@ private fun FilesTab(
                         file = file,
                         onClick = { onFileClick(file) },
                         onQuickRename = { newName -> onQuickRename(file, newName) },
+                        onDelete = { onDeleteFile(file) },
+                        onRename = { onRenameFile(file) },
+                        onMove = { onMoveFile(file) },
                         isHeld = isHeld,
                         showDetails = showAllDetails
                     )

@@ -98,6 +98,12 @@ class FileOrganizerViewModel(application: Application) : AndroidViewModel(applic
         local || service
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    // Storage breakdown by category
+    val storageBreakdown: StateFlow<Map<String, Long>> = allFiles.combine(isScanning) { files, _ ->
+        files.groupBy { it.category }
+            .mapValues { entry -> entry.value.sumOf { it.sizeBytes } }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     val scanProgressText: StateFlow<String> = combine(_localProgressText, FileScanService.progressText) { local, service ->
         if (local.isNotBlank()) local else service
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
@@ -1062,6 +1068,41 @@ class FileOrganizerViewModel(application: Application) : AndroidViewModel(applic
             repository.clearAll()
             _selectedDuplicateIds.value = emptySet()
             _userMessage.value = "Cleared scanned file index."
+        }
+    }
+
+    fun deleteFile(file: FileMetadata) {
+        viewModelScope.launch {
+            try {
+                // Remove physical file
+                val path = file.uri.removePrefix("file://")
+                val physicalFile = File(path)
+                if (physicalFile.exists()) {
+                    physicalFile.delete()
+                }
+                // Remove from DB
+                repository.deleteFile(file)
+                _userMessage.value = "Permanently deleted '${file.currentName}'"
+            } catch (e: Exception) {
+                _userMessage.value = "Failed to delete file: ${e.message}"
+            }
+        }
+    }
+
+    fun moveFile(file: FileMetadata, targetFolder: String) {
+        viewModelScope.launch {
+            try {
+                val movedUri = scannerEngine.movePhysicalFile(file, targetFolder)
+                val updatedFile = file.copy(
+                    organizationFolder = targetFolder,
+                    uri = movedUri,
+                    status = "ORGANIZED"
+                )
+                repository.updateFile(updatedFile)
+                _userMessage.value = "Moved '${file.currentName}' to $targetFolder"
+            } catch (e: Exception) {
+                _userMessage.value = "Failed to move file: ${e.message}"
+            }
         }
     }
 }

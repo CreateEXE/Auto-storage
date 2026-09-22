@@ -93,11 +93,14 @@ data class FileMetadata(
 
 enum class DashboardWidget(val title: String, val description: String, val iconName: String) {
     STORAGE_INFO("Storage Analyzer", "Visual breakdown of your storage space.", "Storage"),
+    STORAGE_BREAKDOWN("Storage Breakdown", "Detailed bar chart of storage usage by category.", "Chart"),
+    TREEMAP("Storage Treemap", "3D-style visualization of folder distribution.", "Map"),
     SEARCH_BAR("Universal Search", "Search all indexed files on the device.", "Search"),
     QUICK_ACTIONS("System Actions", "Scan, clean, and organize shortcuts.", "Bolt"),
     RECENT_FILES("Recent Entities", "Last discovered or modified files.", "History"),
     DUPLICATE_STATS("De-Dupe Status", "Duplicate file count and savings.", "Copy"),
     MUSIC_PREVIEW("Audio Engine", "Quick access to music library stats.", "Music"),
     VAULT_STATUS("Mimic Vault", "Secure vault seal status.", "Lock"),
-    DEVICE_SPECS("System & RAM Health", "Hardware specs, RAM pressure, and storage lag telemetry.", "Memory")
+    DEVICE_SPECS("System & RAM Health", "Hardware specs, RAM pressure, and storage lag telemetry.", "Memory"),
+    TERMINAL("Terminal Logs", "Real-time log of shell commands.", "Terminal")
 }

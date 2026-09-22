@@ -82,6 +82,7 @@ import com.example.ui.components.StorageDashboardCard
 import com.example.ui.theme.CyberCyan
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.LaserEmerald
+import com.example.ui.theme.SecondaryTeal
 import com.example.ui.theme.SteelBorder
 import com.example.ui.theme.SteelSurface
 import com.example.ui.theme.SteelSurfaceContainer
@@ -106,6 +107,94 @@ fun StorageVaultScreen(
 
     var showBatchRenameDialog by remember { mutableStateOf(false) }
     var selectedFileForDetail by remember { mutableStateOf<FileMetadata?>(null) }
+    var fileToDelete by remember { mutableStateOf<FileMetadata?>(null) }
+    var fileToRename by remember { mutableStateOf<FileMetadata?>(null) }
+    var fileToMove by remember { mutableStateOf<FileMetadata?>(null) }
+    var newFileName by remember { mutableStateOf("") }
+    var targetFolderName by remember { mutableStateOf("") }
+
+    if (fileToDelete != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { fileToDelete = null },
+            containerColor = SteelSurface,
+            title = { Text("Delete File?", color = TextSilver) },
+            text = { Text("Permanently delete '${fileToDelete?.currentName}'?", color = TextSteelSecondary) },
+            confirmButton = {
+                androidx.compose.material3.Button(
+                    onClick = {
+                        fileToDelete?.let { viewModel.deleteFile(it) }
+                        fileToDelete = null
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = DangerRed)
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                androidx.compose.material3.OutlinedButton(onClick = { fileToDelete = null }) {
+                    Text("Cancel", color = TextSilver)
+                }
+            }
+        )
+    }
+
+    if (fileToRename != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { fileToRename = null },
+            containerColor = SteelSurface,
+            title = { Text("Rename File", color = TextSilver) },
+            text = {
+                androidx.compose.material3.OutlinedTextField(
+                    value = newFileName,
+                    onValueChange = { newFileName = it },
+                    label = { Text("New Filename") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.Button(
+                    onClick = {
+                        fileToRename?.let { viewModel.renameSingleFile(it, newFileName) }
+                        fileToRename = null
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = Color.Black)
+                ) { Text("Rename") }
+            },
+            dismissButton = {
+                androidx.compose.material3.OutlinedButton(onClick = { fileToRename = null }) {
+                    Text("Cancel", color = TextSilver)
+                }
+            }
+        )
+    }
+
+    if (fileToMove != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { fileToMove = null },
+            containerColor = SteelSurface,
+            title = { Text("Move File", color = TextSilver) },
+            text = {
+                androidx.compose.material3.OutlinedTextField(
+                    value = targetFolderName,
+                    onValueChange = { targetFolderName = it },
+                    label = { Text("Target Folder") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.Button(
+                    onClick = {
+                        fileToMove?.let { viewModel.moveFile(it, targetFolderName) }
+                        fileToMove = null
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = SecondaryTeal, contentColor = Color.Black)
+                ) { Text("Move") }
+            },
+            dismissButton = {
+                androidx.compose.material3.OutlinedButton(onClick = { fileToMove = null }) {
+                    Text("Cancel", color = TextSilver)
+                }
+            }
+        )
+    }
 
     // TAP PATTERN STATE
     // Pattern: 1 - 1 - 1 - 111 (Single, Single, Single, Triple)
@@ -298,7 +387,16 @@ fun StorageVaultScreen(
                             FileCard(
                                 file = file,
                                 onClick = { selectedFileForDetail = file },
-                                onQuickRename = { newName -> viewModel.renameSingleFile(file, newName) }
+                                onQuickRename = { newName -> viewModel.renameSingleFile(file, newName) },
+                                onDelete = { fileToDelete = file },
+                                onRename = { 
+                                    fileToRename = file
+                                    newFileName = file.currentName
+                                },
+                                onMove = { 
+                                    fileToMove = file
+                                    targetFolderName = file.organizationFolder
+                                }
                             )
                         }
                     }
