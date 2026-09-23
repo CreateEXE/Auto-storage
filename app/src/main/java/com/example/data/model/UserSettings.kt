@@ -75,5 +75,7 @@ data class UserSettings(
     val defaultSpaceReplacement: String = "_", // "_", "-", " "
     val groupDuplicatesByHash: Boolean = true,
     val pinnedApps: List<String> = emptyList(),
-    val setupCompleted: Boolean = false
+    val setupCompleted: Boolean = false,
+    val desktopBackgroundColor: Long = 0xFF008080, // Win95 Teal
+    val desktopApps: List<String> = listOf("FILE_EXPLORER", "TERMUX", "DASHBOARD", "VAULT")
 )

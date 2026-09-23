@@ -15,13 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.FileOrganizerViewModel
-import com.example.ui.theme.GunmetalBackground
-import com.example.ui.theme.SteelBorder
-import com.example.ui.theme.TextSilver
-import com.example.ui.theme.TextSteelMuted
+import com.example.ui.theme.*
 
 @Composable
 fun TerminalWidget(
@@ -29,12 +27,12 @@ fun TerminalWidget(
     onClose: () -> Unit
 ) {
     var command by remember { mutableStateOf("") }
-    val logs = remember { mutableStateListOf<String>("Termux Terminal Environment.", "Note: Ensure 'Allow external apps' is enabled in Termux settings.") }
+    val logs = remember { mutableStateListOf<String>("SYSTEM CORE :: THE WORLD OS V1.0", "WARNING: RESOURCE INTEGRITY CHECK IN PROGRESS...") }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(GunmetalBackground)
+            .background(HackBlack)
             .padding(16.dp)
     ) {
         // Output Area
@@ -42,9 +40,9 @@ fun TerminalWidget(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            color = Color.Black,
-            shape = RoundedCornerShape(8.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, SteelBorder)
+            color = HackBlack,
+            shape = RoundedCornerShape(2.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, HackDeepOrange.copy(alpha = 0.3f))
         ) {
             LazyColumn(
                 modifier = Modifier
@@ -53,10 +51,10 @@ fun TerminalWidget(
             ) {
                 items(logs) { log ->
                     Text(
-                        text = log,
-                        color = if (log.startsWith(">")) Color.Cyan else if (log.startsWith("!")) Color.Red else Color.Green,
+                        text = log.uppercase(),
+                        color = if (log.startsWith(">")) HackCyan else if (log.startsWith("!")) DangerRed else HackDeepOrange,
                         fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         modifier = Modifier.padding(vertical = 2.dp)
                     )
                 }
@@ -67,41 +65,42 @@ fun TerminalWidget(
 
         // Input Area
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().background(HackDeepOrange.copy(alpha = 0.05f)).border(1.dp, HackDeepOrange.copy(alpha = 0.2f), RoundedCornerShape(2.dp)).padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "$ ",
-                color = Color.Green,
+                text = ">>",
+                color = HackCyan,
                 fontFamily = FontFamily.Monospace,
-                fontSize = 14.sp
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
             )
             
             OutlinedTextField(
                 value = command,
                 onValueChange = { command = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("enter shell command...", fontSize = 12.sp, color = TextSteelMuted) },
+                placeholder = { Text("CORE_CMD_INPUT...", fontSize = 11.sp, color = TextSteelMuted, fontFamily = FontFamily.Monospace) },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
                     unfocusedBorderColor = Color.Transparent,
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White
                 ),
-                singleLine = true
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
             )
             
             IconButton(
                 onClick = {
                     if (command.isNotBlank()) {
                         logs.add("> $command")
-                        // In a real app, we'd use TermuxBridge.runCommand(command)
-                        logs.add("Executing in Termux backend...")
+                        logs.add("ACCESSING CORE FRAGMENT...")
                         command = ""
                     }
                 }
             ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = "Run", tint = Color.Cyan)
+                Icon(Icons.Default.PlayArrow, contentDescription = "Run", tint = HackCyan)
             }
         }
     }

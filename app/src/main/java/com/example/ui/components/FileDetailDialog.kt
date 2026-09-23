@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Image
@@ -89,7 +90,8 @@ fun FileDetailDialog(
     onRename: (newName: String) -> Unit,
     onSaveMetadata: (tags: String, summary: String, suggestedName: String) -> Unit,
     onDelete: () -> Unit,
-    onToggleVault: () -> Unit
+    onToggleVault: () -> Unit,
+    onEditMusicTags: (FileMetadata) -> Unit = {}
 ) {
     var editName by remember { mutableStateOf(file.currentName) }
     var editSuggestedName by remember { mutableStateOf(file.suggestedName) }
@@ -343,10 +345,25 @@ fun FileDetailDialog(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Album, contentDescription = null, tint = CyberCyan, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("MUSIC ID3 METADATA", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = CyberCyan)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Album, contentDescription = null, tint = CyberCyan, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("MUSIC ID3 METADATA", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = CyberCyan)
+                                }
+                                IconButton(
+                                    onClick = { 
+                                        // This will be handled by a state in the caller
+                                        onEditMusicTags(file)
+                                    },
+                                    modifier = Modifier.size(24.dp).testTag("open_tag_editor_button")
+                                ) {
+                                    Icon(Icons.Default.Edit, "Edit Tags", tint = CyberCyan, modifier = Modifier.size(14.dp))
+                                }
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text("Band/Artist: ${file.artist ?: "Unknown"}", style = MaterialTheme.typography.bodySmall, color = TextSilver)

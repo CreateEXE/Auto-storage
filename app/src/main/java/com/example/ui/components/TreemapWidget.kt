@@ -12,13 +12,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import com.example.ui.theme.*
 import com.example.data.model.FileMetadata
-import com.example.ui.theme.SteelSurfaceContainer
-import com.example.ui.theme.TextSilver
+import com.example.ui.theme.TextSteelMuted
 
 @Composable
 fun TreemapWidget(
@@ -26,52 +29,50 @@ fun TreemapWidget(
     onRemove: () -> Unit,
     isHeld: Boolean = false
 ) {
-    val treeData = remember(files) {
-        files.groupBy { it.category }
-            .mapValues { entry -> entry.value.sumOf { it.sizeBytes } }
-            .toList()
-            .sortedByDescending { it.second }
+    val largestFiles = remember(files) {
+        files.sortedByDescending { it.sizeBytes }.take(4)
     }
 
-    val totalSize = remember(treeData) { treeData.sumOf { it.second }.coerceAtLeast(1) }
-
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(8.dp),
-        shape = RoundedCornerShape(12.dp)
+    WidgetContainer(
+        title = "Resource Anomalies",
+        icon = Icons.Default.Warning,
+        iconColor = HackDeepOrange,
+        onRemove = onRemove,
+        isHeld = isHeld
     ) {
-        Column(
-            modifier = Modifier
-                .background(SteelSurfaceContainer)
-                .padding(16.dp)
-        ) {
-            Text("Storage Treemap", style = MaterialTheme.typography.titleSmall, color = TextSilver)
-            Spacer(modifier = Modifier.height(8.dp))
-            Canvas(modifier = Modifier.fillMaxWidth().height(200.dp)) {
-                var currentX = 0f
-                val chartHeight = size.height
-                val chartWidth = size.width
-
-                treeData.forEach { (category, sizeBytes) ->
-                    val width = (sizeBytes.toFloat() / totalSize) * chartWidth
-                    
-                    // "3D" effect using gradients and slight offset
-                    val color = when(category) {
-                        "IMAGES" -> Color(0xFF64B5F6)
-                        "VIDEO" -> Color(0xFFE57373)
-                        "AUDIO" -> Color(0xFF81C784)
-                        "DOCUMENTS" -> Color(0xFFFFD54F)
-                        else -> Color(0xFF90A4AE)
+        if (largestFiles.isEmpty()) {
+            Text("No large fragments detected.", color = TextSteelMuted, fontSize = 11.sp)
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                largestFiles.forEach { file ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = file.currentName.uppercase(),
+                                color = TextSilver,
+                                fontSize = 10.sp,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Text(
+                                text = "CLASS: ${file.category}",
+                                color = TextSteelMuted,
+                                fontSize = 8.sp
+                            )
+                        }
+                        Text(
+                            text = file.formattedSize,
+                            color = HackCyan,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
                     }
-
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(color.copy(alpha = 0.9f), color.copy(alpha = 0.6f))
-                        ),
-                        topLeft = Offset(currentX, 0f),
-                        size = Size(width, chartHeight)
-                    )
-                    
-                    currentX += width
                 }
             }
         }

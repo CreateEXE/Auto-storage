@@ -13,6 +13,7 @@ import com.example.data.model.DashboardWidget
 import com.example.data.model.DuplicateGroup
 import com.example.data.model.FileCategory
 import com.example.data.model.FileMetadata
+import com.example.data.model.InstalledApp
 import com.example.data.model.RenamingRuleEntity
 import com.example.data.model.SortOption
 import com.example.data.model.StorageStats
@@ -45,11 +46,15 @@ class FileOrganizerViewModel(application: Application) : AndroidViewModel(applic
     private val networkMonitor = NetworkMonitor(application)
     private val analyzer = GeminiFileAnalyzer()
 
+    private val _termuxLinked = MutableStateFlow(false)
+    val termuxLinked: StateFlow<Boolean> = _termuxLinked.asStateFlow()
+
     init {
         val database = AppDatabase.getDatabase(application)
         repository = FileRepository(database.fileDao(), database.renamingRuleDao())
         settingsRepository = SettingsRepository(application)
         scannerEngine = FileScannerEngine(application, analyzer)
+        checkTermuxLink()
     }
 
     // User settings flow
@@ -170,6 +175,25 @@ class FileOrganizerViewModel(application: Application) : AndroidViewModel(applic
     // Dashboard Customization
     private val _dashboardWidgets = MutableStateFlow<List<DashboardWidget>>(DashboardWidget.values().toList())
     val dashboardWidgets: StateFlow<List<DashboardWidget>> = _dashboardWidgets.asStateFlow()
+
+    fun checkTermuxLink() {
+        viewModelScope.launch {
+            val setupManager = com.example.termux.TermuxSetupManager(getApplication())
+            _termuxLinked.value = setupManager.isTermuxInstalled()
+        }
+    }
+
+    fun updateMusicTags(file: FileMetadata, artist: String, album: String, title: String, genre: String, year: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val updated = com.example.ui.util.AudioMetadataManager.updateId3Tags(getApplication(), file, artist, album, title, genre, year)
+            if (updated != null) {
+                repository.updateFile(updated)
+                _userMessage.value = "ID3 Tags updated successfully!"
+            } else {
+                _userMessage.value = "Failed to update ID3 tags."
+            }
+        }
+    }
 
     fun toggleDashboardWidget(widget: DashboardWidget) {
         val current = _dashboardWidgets.value.toMutableList()
@@ -1078,6 +1102,43 @@ class FileOrganizerViewModel(application: Application) : AndroidViewModel(applic
         settingsRepository.updateAutoSortOnScan(enabled)
     }
 
+    fun updateAudioTags(filePath: String, title: String, artist: String, album: String, genre: String = "", year: String = "") {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val mp3file = com.mpatric.mp3agic.Mp3File(filePath)
+                val id3v2Tag = if (mp3file.hasId3v2Tag()) {
+                    mp3file.id3v2Tag
+                } else {
+                    val tag = com.mpatric.mp3agic.ID3v24Tag()
+                    mp3file.id3v2Tag = tag
+                    tag
+                }
+                
+                id3v2Tag.title = title
+                id3v2Tag.artist = artist
+                id3v2Tag.album = album
+                id3v2Tag.genreDescription = genre
+                id3v2Tag.year = year
+                
+                val tempPath = "$filePath.tmp"
+                mp3file.save(tempPath)
+                
+                val originalFile = java.io.File(filePath)
+                val tempFile = java.io.File(tempPath)
+                
+                if (tempFile.exists()) {
+                    originalFile.delete()
+                    tempFile.renameTo(originalFile)
+                }
+                
+                // Refresh scan
+                scanDeviceStorage()
+            } catch (e: Exception) {
+                // Log error
+            }
+        }
+    }
+
     fun setAutoSuggestRenamesOnScan(enabled: Boolean) {
         settingsRepository.updateAutoSuggestRenamesOnScan(enabled)
     }
@@ -1132,6 +1193,34 @@ class FileOrganizerViewModel(application: Application) : AndroidViewModel(applic
             } catch (e: Exception) {
                 _userMessage.value = "Failed to delete file: ${e.message}"
             }
+        }
+    }
+
+    private val _installedApps = MutableStateFlow<List<InstalledApp>>(emptyList())
+    val installedApps: StateFlow<List<InstalledApp>> = _installedApps.asStateFlow()
+
+    fun loadInstalledApps() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val pm = getApplication<Application>().packageManager
+            val intent = android.content.Intent(android.content.Intent.ACTION_MAIN, null)
+            intent.addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+            val resolveInfoList = pm.queryIntentActivities(intent, 0)
+            val apps = resolveInfoList.map { 
+                InstalledApp(
+                    packageName = it.activityInfo.packageName,
+                    label = it.loadLabel(pm).toString()
+                )
+            }.distinctBy { it.packageName }.sortedBy { it.label }
+            _installedApps.value = apps
+        }
+    }
+
+    fun launchApp(packageName: String) {
+        val pm = getApplication<Application>().packageManager
+        val launchIntent = pm.getLaunchIntentForPackage(packageName)
+        if (launchIntent != null) {
+            launchIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            getApplication<Application>().startActivity(launchIntent)
         }
     }
 

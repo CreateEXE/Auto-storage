@@ -14,14 +14,17 @@ import com.example.data.model.FileMetadata
 import com.example.ui.theme.SteelSurfaceContainer
 import com.example.ui.theme.TextSilver
 import com.example.ui.theme.TextSteelMuted
-import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottomAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStartAxis
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
-import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
-import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
-import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material3.LinearProgressIndicator
+import com.example.ui.theme.HackCyan
+import com.example.ui.theme.HackDeepOrange
+import com.example.ui.theme.HackBlack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -31,44 +34,53 @@ fun StorageBreakdownWidget(
     onRemove: () -> Unit,
     isHeld: Boolean = false
 ) {
-    val modelProducer = remember { CartesianChartModelProducer.build() }
-    
-    LaunchedEffect(storageBreakdown) {
-        if (storageBreakdown.isEmpty()) return@LaunchedEffect
-        withContext(Dispatchers.Default) {
-            modelProducer.runTransaction {
-                columnSeries {
-                    series(storageBreakdown.values.map { it.toFloat() / 1024 / 1024 }) // Convert to MB
-                }
-            }
-        }
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(8.dp),
-        shape = RoundedCornerShape(12.dp)
+    WidgetContainer(
+        title = "Data Distribution",
+        icon = Icons.Default.Category,
+        iconColor = HackCyan,
+        onRemove = onRemove,
+        isHeld = isHeld
     ) {
-        Column(
-            modifier = Modifier
-                .background(SteelSurfaceContainer)
-                .padding(16.dp)
-        ) {
-            Text("Storage Breakdown (MB)", style = MaterialTheme.typography.titleSmall, color = TextSilver)
-            Spacer(modifier = Modifier.height(8.dp))
-            if (storageBreakdown.isEmpty()) {
-                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                    Text("No entities indexed yet", color = TextSteelMuted, style = MaterialTheme.typography.bodySmall)
+        if (storageBreakdown.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                Text("No data nodes indexed", color = TextSteelMuted, fontSize = 11.sp)
+            }
+        } else {
+            val total = storageBreakdown.values.sum().coerceAtLeast(1L)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                storageBreakdown.toList().sortedByDescending { it.second }.take(6).forEach { (label, size) ->
+                    val percentage = size.toFloat() / total
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = label.uppercase(),
+                            modifier = Modifier.weight(1f),
+                            color = TextSilver,
+                            fontSize = 9.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(2f)
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(HackDeepOrange.copy(alpha = 0.1f))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(percentage)
+                                    .fillMaxHeight()
+                                    .background(HackCyan)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${(percentage * 100).toInt()}%",
+                            color = HackCyan,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
-            } else {
-                CartesianChartHost(
-                    chart = rememberCartesianChart(
-                        rememberColumnCartesianLayer(),
-                        startAxis = rememberStartAxis(),
-                        bottomAxis = rememberBottomAxis()
-                    ),
-                    modelProducer = modelProducer,
-                    modifier = Modifier.height(200.dp)
-                )
             }
         }
     }

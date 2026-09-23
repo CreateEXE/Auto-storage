@@ -38,6 +38,9 @@ class SettingsRepository(context: Context) {
         val pinnedAppsString = prefs.getString(KEY_PINNED_APPS, "") ?: ""
         val pinnedApps = if (pinnedAppsString.isEmpty()) emptyList() else pinnedAppsString.split(",")
         val setupCompleted = prefs.getBoolean(KEY_SETUP_COMPLETED, false)
+        val desktopBgColor = prefs.getLong(KEY_DESKTOP_BG_COLOR, 0xFF008080)
+        val desktopAppsString = prefs.getString(KEY_DESKTOP_APPS, "FILE_EXPLORER,TERMUX,DASHBOARD,VAULT") ?: ""
+        val desktopApps = if (desktopAppsString.isEmpty()) emptyList() else desktopAppsString.split(",")
 
         return UserSettings(
             autoSortEnabled = autoSortEnabled,
@@ -51,7 +54,9 @@ class SettingsRepository(context: Context) {
             defaultSpaceReplacement = defaultSpaceReplacement,
             groupDuplicatesByHash = groupDuplicates,
             pinnedApps = pinnedApps,
-            setupCompleted = setupCompleted
+            setupCompleted = setupCompleted,
+            desktopBackgroundColor = desktopBgColor,
+            desktopApps = desktopApps
         )
     }
 
@@ -69,6 +74,8 @@ class SettingsRepository(context: Context) {
             putBoolean(KEY_GROUP_DUPLICATES_BY_HASH, settings.groupDuplicatesByHash)
             putString(KEY_PINNED_APPS, settings.pinnedApps.joinToString(","))
             putBoolean(KEY_SETUP_COMPLETED, settings.setupCompleted)
+            putLong(KEY_DESKTOP_BG_COLOR, settings.desktopBackgroundColor)
+            putString(KEY_DESKTOP_APPS, settings.desktopApps.joinToString(","))
         }.apply()
         _settings.value = settings
     }
@@ -141,5 +148,7 @@ class SettingsRepository(context: Context) {
         private const val KEY_GROUP_DUPLICATES_BY_HASH = "key_group_duplicates_by_hash"
         private const val KEY_PINNED_APPS = "key_pinned_apps"
         private const val KEY_SETUP_COMPLETED = "key_setup_completed"
+        private const val KEY_DESKTOP_BG_COLOR = "key_desktop_bg_color"
+        private const val KEY_DESKTOP_APPS = "key_desktop_apps"
     }
 }

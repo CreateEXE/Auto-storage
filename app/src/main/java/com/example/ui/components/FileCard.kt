@@ -61,19 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.FileCategory
 import com.example.data.model.FileMetadata
-import com.example.ui.theme.CleanGreen
-import com.example.ui.theme.CyberCyan
-import com.example.ui.theme.DangerRed
-import com.example.ui.theme.LaserEmerald
-import com.example.ui.theme.SecondaryTeal
-import com.example.ui.theme.SteelBorder
-import com.example.ui.theme.SteelSurface
-import com.example.ui.theme.SteelSurfaceContainer
-import com.example.ui.theme.SteelSurfaceElevated
-import com.example.ui.theme.SteelSurfaceVariant
-import com.example.ui.theme.TextSilver
-import com.example.ui.theme.TextSteelMuted
-import com.example.ui.theme.TextSteelSecondary
+import com.example.ui.theme.*
 import com.example.ui.util.metallicPanel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -110,10 +98,9 @@ fun FileCard(
                 .fillMaxWidth()
                 .border(
                     width = if (isHeld) 1.5.dp else 1.dp,
-                    color = if (isHeld) CyberCyan else SteelBorder.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(14.dp)
+                    color = if (isHeld) HackCyan else HackDeepOrange.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(2.dp)
                 )
-                .metallicPanel(cornerRadius = 14.dp, showBolts = false)
                 .pointerInput(file.id) {
                     detectTapGestures(
                         onTap = { onClick() },
@@ -121,9 +108,9 @@ fun FileCard(
                     )
                 }
                 .testTag("file_card_${file.id}"),
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(2.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (isHeld) SteelSurfaceElevated else Color.Transparent
+                containerColor = if (isHeld) HackDeepOrange.copy(alpha = 0.1f) else HackBlack.copy(alpha = 0.6f)
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = if (isHeld) 8.dp else 2.dp)
         ) {
@@ -140,15 +127,10 @@ fun FileCard(
                     // Category Icon
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                when (category) {
-                                    FileCategory.AUDIO -> CyberCyan.copy(alpha = 0.18f)
-                                    FileCategory.IMAGES -> LaserEmerald.copy(alpha = 0.18f)
-                                    else -> category.color.copy(alpha = 0.18f)
-                                }
-                            ),
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(HackDeepOrange.copy(alpha = 0.1f))
+                            .border(1.dp, HackDeepOrange.copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -158,12 +140,8 @@ fun FileCard(
                                 else -> category.icon
                             },
                             contentDescription = category.title,
-                            tint = when (category) {
-                                FileCategory.AUDIO -> CyberCyan
-                                FileCategory.IMAGES -> LaserEmerald
-                                else -> category.color
-                            },
-                            modifier = Modifier.size(20.dp)
+                            tint = HackDeepOrange,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
@@ -174,10 +152,12 @@ fun FileCard(
                         Text(
                             text = file.currentName,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isHeld) CyberCyan else TextSilver,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isHeld) HackCyan else TextSilver,
                             maxLines = if (showDetails) 3 else 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            fontFamily = FontFamily.Monospace,
+                            letterSpacing = 0.5.sp
                         )
 
                         Spacer(modifier = Modifier.height(2.dp))

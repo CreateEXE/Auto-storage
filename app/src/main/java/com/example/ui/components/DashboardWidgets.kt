@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -29,18 +30,9 @@ import com.example.data.model.FileMetadata
 import com.example.data.model.StorageStats
 import com.example.data.system.DeviceDiagnostics
 import com.example.data.system.StorageImpactLevel
+import com.example.ui.FileOrganizerViewModel
 import com.example.ui.theme.*
 import com.example.ui.util.metallicPanel
-import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottomAxis
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStartAxis
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
-import com.patrykandpatrick.vico.compose.common.component.rememberLineComponent
-import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
-import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModel
-import com.patrykandpatrick.vico.core.cartesian.data.ColumnCartesianLayerModel
-import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
 
 @Composable
 fun WidgetContainer(
@@ -56,15 +48,15 @@ fun WidgetContainer(
             .fillMaxWidth()
             .border(
                 width = if (isHeld) 1.5.dp else 1.dp,
-                color = if (isHeld) CyberCyan else SteelBorder.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .metallicPanel(cornerRadius = 16.dp),
+                color = if (isHeld) HackCyan else HackDeepOrange.copy(alpha = 0.3f),
+                shape = RoundedCornerShape(2.dp)
+            ),
+        shape = RoundedCornerShape(2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isHeld) SteelSurfaceElevated else SteelSurface.copy(alpha = 0.5f)
+            containerColor = if (isHeld) SteelSurfaceElevated else HackBlack.copy(alpha = 0.8f)
         )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -72,26 +64,19 @@ fun WidgetContainer(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.DragIndicator,
-                        contentDescription = "Hold to drag",
-                        tint = if (isHeld) CyberCyan else TextSteelMuted.copy(alpha = 0.6f),
-                        modifier = Modifier
-                            .size(16.dp)
-                            .padding(end = 4.dp)
-                    )
-                    Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = iconColor,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = title.uppercase(),
                         style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Black,
-                        color = if (isHeld) CyberCyan else TextSilver,
-                        letterSpacing = 1.sp
+                        fontWeight = FontWeight.Bold,
+                        color = if (isHeld) HackCyan else HackDeepOrange,
+                        letterSpacing = 2.sp,
+                        fontFamily = FontFamily.Monospace
                     )
                 }
                 
@@ -102,14 +87,20 @@ fun WidgetContainer(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Remove Widget",
-                            tint = TextSteelMuted,
+                            contentDescription = "De-sync",
+                            tint = HackDeepOrange.copy(alpha = 0.5f),
                             modifier = Modifier.size(14.dp)
                         )
                     }
                 }
             }
             
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(HackDeepOrange.copy(alpha = 0.2f))
+            )
             Spacer(modifier = Modifier.height(12.dp))
             content()
         }
@@ -150,57 +141,38 @@ fun SearchWidget(
 }
 
 @Composable
-fun StorageBreakdownChart(categorySizes: Map<FileCategory, Long>) {
-    val categories = FileCategory.entries
-    val entries = categories.map { category ->
-        (categorySizes[category] ?: 0L) / (1024 * 1024).toFloat()
-    }
+fun StorageBreakdownList(categorySizes: Map<FileCategory, Long>) {
+    val total = categorySizes.values.sum().coerceAtLeast(1L)
     
-    if (entries.isEmpty()) {
-        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-            Text("No data", color = TextSteelMuted)
-        }
-        return
-    }
-
-    val model = remember(entries) {
-        CartesianChartModel(
-            ColumnCartesianLayerModel.build {
-                series(entries)
-            }
-        )
-    }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "STORAGE BY CATEGORY (MB)",
-            style = MaterialTheme.typography.labelSmall,
-            color = TextSteelMuted,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-        ) {
-            CartesianChartHost(
-                chart = rememberCartesianChart(
-                    layers = arrayOf(rememberColumnCartesianLayer()),
-                    startAxis = rememberStartAxis(
-                        label = rememberTextComponent(color = TextSteelSecondary),
-                        guideline = rememberLineComponent(color = SteelBorder.copy(alpha = 0.2f))
-                    ),
-                    bottomAxis = rememberBottomAxis(
-                        label = rememberTextComponent(color = TextSteelSecondary),
-                        valueFormatter = { value, _, _ ->
-                            categories.getOrNull(value.toInt())?.name ?: ""
-                        }
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        categorySizes.filter { it.value > 0 }.toList().sortedByDescending { it.second }.take(5).forEach { (category, size) ->
+            val percentage = (size.toFloat() / total)
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = category.name.uppercase(),
+                        color = TextSilver,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace
                     )
-                ),
-                model = model,
-                modifier = Modifier.fillMaxSize()
-            )
+                    Text(
+                        text = "${(percentage * 100).toInt()}%",
+                        color = HackCyan,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = { percentage },
+                    modifier = Modifier.fillMaxWidth().height(2.dp).clip(RoundedCornerShape(1.dp)),
+                    color = HackDeepOrange,
+                    trackColor = HackDeepOrange.copy(alpha = 0.1f)
+                )
+            }
         }
     }
 }
@@ -212,29 +184,25 @@ fun StorageInfoWidget(
     isHeld: Boolean = false
 ) {
     WidgetContainer(
-        title = "Storage Analyzer",
-        icon = Icons.Default.Storage,
-        iconColor = LaserEmerald,
+        title = "Resource Integrity",
+        icon = Icons.Default.DataUsage,
+        iconColor = HackDeepOrange,
         onRemove = onRemove,
         isHeld = isHeld
     ) {
-        StorageDashboardCard(
-            stats = stats,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(20.dp))
-        
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = SteelSurfaceContainer.copy(alpha = 0.3f),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, SteelBorder.copy(alpha = 0.3f))
-        ) {
-            Box(modifier = Modifier.padding(16.dp)) {
-                StorageBreakdownChart(categorySizes = stats.categorySizes)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column {
+                Text("Total Payload", color = TextSteelMuted, fontSize = 9.sp)
+                Text(stats.formattedTotalSize, color = TextSilver, fontSize = 16.sp, fontWeight = FontWeight.Black)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text("Redundancy", color = TextSteelMuted, fontSize = 9.sp)
+                Text(stats.formattedDuplicateSavings, color = DangerRed, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        StorageBreakdownList(categorySizes = stats.categorySizes)
     }
 }
 
@@ -428,9 +396,9 @@ fun DeviceSpecsWidget(
     }
 
     WidgetContainer(
-        title = "System & RAM Health",
+        title = "System Pulse",
         icon = Icons.Default.Memory,
-        iconColor = CyberCyan,
+        iconColor = HackCyan,
         onRemove = onRemove,
         isHeld = isHeld
     ) {
@@ -446,20 +414,22 @@ fun DeviceSpecsWidget(
             ) {
                 Column {
                     Text(
-                        text = "${diagnostics.hardware.manufacturer} ${diagnostics.hardware.model}",
+                        text = "${diagnostics.hardware.model}".uppercase(),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = TextSilver
+                        color = TextSilver,
+                        fontFamily = FontFamily.Monospace
                     )
                     Text(
-                        text = "${diagnostics.hardware.cpuCores} Cores • Android ${diagnostics.hardware.androidVersion}",
+                        text = "KERNEL V${diagnostics.hardware.androidVersion} • NODES: ${diagnostics.hardware.cpuCores}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextSteelMuted
+                        color = TextSteelMuted,
+                        fontSize = 9.sp
                     )
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(6.dp),
+                    shape = RoundedCornerShape(2.dp),
                     color = levelColor.copy(alpha = 0.15f),
                     border = BorderStroke(1.dp, levelColor.copy(alpha = 0.5f))
                 ) {
@@ -468,8 +438,8 @@ fun DeviceSpecsWidget(
                         style = MaterialTheme.typography.labelSmall,
                         color = levelColor,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 9.sp,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        fontSize = 8.sp,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                     )
                 }
             }
@@ -481,14 +451,15 @@ fun DeviceSpecsWidget(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "System RAM",
+                        text = "BUFFER MEMORY",
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextSteelMuted
+                        color = TextSteelMuted,
+                        fontSize = 9.sp
                     )
                     Text(
-                        text = "${diagnostics.memory.formattedUsedRam} / ${diagnostics.memory.formattedTotalRam} (${diagnostics.memory.ramUsedPercent}%)",
+                        text = "${diagnostics.memory.ramUsedPercent}%",
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (diagnostics.memory.isLowMemory) CyberCrimson else ElectricBlue,
+                        color = if (diagnostics.memory.isLowMemory) CyberCrimson else HackCyan,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -496,10 +467,10 @@ fun DeviceSpecsWidget(
                     progress = { (diagnostics.memory.ramUsedPercent / 100f).coerceIn(0f, 1f) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = if (diagnostics.memory.isLowMemory) CyberCrimson else ElectricBlue,
-                    trackColor = SteelSurfaceVariant
+                        .height(2.dp)
+                        .clip(RoundedCornerShape(1.dp)),
+                    color = if (diagnostics.memory.isLowMemory) CyberCrimson else HackCyan,
+                    trackColor = HackCyan.copy(alpha = 0.1f)
                 )
             }
 

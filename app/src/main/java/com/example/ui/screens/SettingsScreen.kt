@@ -25,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Code
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Monitor
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Security
@@ -77,6 +79,7 @@ import com.example.ui.components.SortSelectionDialog
 import com.example.ui.theme.CyberCyan
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.LaserEmerald
+import com.example.ui.theme.WarningAmber
 import com.example.ui.theme.SteelBackground
 import com.example.ui.theme.SteelBorder
 import com.example.ui.theme.SteelSurface
@@ -576,7 +579,70 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         // --------------------------------------------------------------------
-        // 5. GITHUB ACTIONS CI/CD BUILD PIPELINE
+        // 5. DESKTOP CUSTOMIZATION
+        // --------------------------------------------------------------------
+        SettingsSectionHeader(
+            icon = Icons.Default.Monitor,
+            title = "DESKTOP CUSTOMIZATION",
+            accentColor = WarningAmber
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth().metallicPanel(cornerRadius = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "DESKTOP BACKGROUND COLOR",
+                    color = TextSteelSecondary,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val bgColors = listOf(
+                    0xFF008080 to "Win95 Teal",
+                    0xFF000000 to "Pure Black",
+                    0xFF1E293B to "Slate Dark",
+                    0xFF4A5568 to "Steel Gray"
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    bgColors.forEach { (colorLong, label) ->
+                        val isSelected = userSettings.desktopBackgroundColor == colorLong
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(colorLong))
+                                .border(
+                                    2.dp,
+                                    if (isSelected) CyberCyan else Color.Transparent,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .clickable { 
+                                    viewModel.updateSettings(userSettings.copy(desktopBackgroundColor = colorLong))
+                                }
+                                .padding(4.dp),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            if (isSelected) {
+                                Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp), tint = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // --------------------------------------------------------------------
+        // 6. GITHUB ACTIONS CI/CD BUILD PIPELINE
         // --------------------------------------------------------------------
         SettingsSectionHeader(
             icon = Icons.Default.Code,

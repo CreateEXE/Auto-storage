@@ -52,16 +52,7 @@ import com.example.data.model.DuplicateGroup
 import com.example.data.model.FileCategory
 import com.example.data.model.FileMetadata
 import androidx.compose.ui.graphics.Color
-import com.example.ui.theme.CyberCyan
-import com.example.ui.theme.DangerRed
-import com.example.ui.theme.LaserEmerald
-import com.example.ui.theme.SteelBorder
-import com.example.ui.theme.SteelSurface
-import com.example.ui.theme.SteelSurfaceContainer
-import com.example.ui.theme.SteelSurfaceVariant
-import com.example.ui.theme.TextSilver
-import com.example.ui.theme.TextSteelMuted
-import com.example.ui.theme.TextSteelSecondary
+import com.example.ui.theme.*
 import com.example.ui.util.metallicPanel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -83,10 +74,10 @@ fun DuplicateGroupCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .metallicPanel(cornerRadius = 14.dp)
+            .border(1.dp, HackDeepOrange.copy(alpha = 0.3f), RoundedCornerShape(2.dp))
             .testTag("duplicate_group_${group.groupId}"),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        shape = RoundedCornerShape(2.dp),
+        colors = CardDefaults.cardColors(containerColor = HackBlack.copy(alpha = 0.4f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -100,15 +91,16 @@ fun DuplicateGroupCard(
                     Box(
                         modifier = Modifier
                             .size(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(DangerRed.copy(alpha = 0.2f)),
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(DangerRed.copy(alpha = 0.15f))
+                            .border(1.dp, DangerRed.copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.ContentCopy,
                             contentDescription = "Duplicate Set",
                             tint = DangerRed,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
@@ -179,7 +171,7 @@ fun DuplicateGroupCard(
 
             // 1. Original File (KEEP)
             Surface(
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(2.dp),
                 color = LaserEmerald.copy(alpha = 0.08f),
                 border = androidx.compose.foundation.BorderStroke(1.dp, LaserEmerald.copy(alpha = 0.3f))
             ) {
@@ -244,11 +236,11 @@ fun DuplicateGroupCard(
             for (duplicate in group.duplicateFiles) {
                 val isSelected = selectedFileIds.contains(duplicate.id)
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = SteelSurfaceContainer,
+                    shape = RoundedCornerShape(2.dp),
+                    color = HackBlack.copy(alpha = 0.8f),
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        if (isSelected) DangerRed else SteelBorder
+                        if (isSelected) DangerRed else HackDeepOrange.copy(alpha = 0.2f)
                     ),
                     modifier = Modifier.padding(vertical = 3.dp)
                 ) {

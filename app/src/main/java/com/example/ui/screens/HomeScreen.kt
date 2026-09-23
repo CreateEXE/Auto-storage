@@ -106,6 +106,7 @@ fun HomeScreen(
     var fileToMove by remember { mutableStateOf<FileMetadata?>(null) }
     var newFileName by remember { mutableStateOf("") }
     var targetFolderName by remember { mutableStateOf("") }
+    var fileToEditTags by remember { mutableStateOf<FileMetadata?>(null) }
 
     if (fileToDelete != null) {
         AlertDialog(
@@ -296,6 +297,14 @@ fun HomeScreen(
         }
     }
 
+    val viewModelTab by viewModel.currentTab.collectAsStateWithLifecycle()
+    
+    LaunchedEffect(viewModelTab) {
+        currentTab = viewModelTab
+    }
+    
+    // ... (logic for fileToDelete, etc.)
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
@@ -303,8 +312,9 @@ fun HomeScreen(
             .metalPlateOverlay(alpha = 0.05f),
         containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(
-                title = {
+            if (showNavigation) {
+                TopAppBar(
+                    title = {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
@@ -495,7 +505,8 @@ fun HomeScreen(
                     }
                 }
             )
-        },
+        }
+    },
         bottomBar = {
             if (showNavigation) {
                 NavigationBar(
@@ -778,6 +789,18 @@ fun HomeScreen(
             },
             onToggleVault = {
                 viewModel.toggleVault(file)
+            },
+            onEditMusicTags = { fileToEditTags = it }
+        )
+    }
+
+    fileToEditTags?.let { file ->
+        AudioTagEditorDialog(
+            filePath = file.uri.removePrefix("file://"),
+            onDismiss = { fileToEditTags = null },
+            onSave = { title, artist, album, genre, year ->
+                viewModel.updateMusicTags(file, artist, album, title, genre, year)
+                fileToEditTags = null
             }
         )
     }

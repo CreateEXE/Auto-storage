@@ -1,6 +1,6 @@
 {
-  "name": "File Organizer",
-  "description": "High-tech file intelligence and organizer with dashboard customization, Vico storage breakdown chart, real-time device specs & RAM telemetry, storage system lag impact assessment, SHA-256 duplicate detection, and automated file organization.",
+  "name": "World OS",
+  "description": "A .hack//sign inspired Android launcher and high-tech file intelligence system with dashboard customization, Vico storage breakdown, real-time device specs, SHA-256 duplicate detection, and automated file organization.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

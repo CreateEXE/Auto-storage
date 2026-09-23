@@ -8,6 +8,7 @@ import android.os.Environment
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,17 +17,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.FileOrganizerViewModel
@@ -40,71 +42,66 @@ fun SetupWizardScreen(viewModel: FileOrganizerViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF008080)), // Win95 Teal
+            .background(HackBlack),
         contentAlignment = Alignment.Center
     ) {
+        // Decorative background grid
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val step = 60f
+            for (x in 0..(size.width / step).toInt()) {
+                drawLine(HackDeepOrange.copy(alpha = 0.05f), Offset(x * step, 0f), Offset(x * step, size.height))
+            }
+            for (y in 0..(size.height / step).toInt()) {
+                drawLine(HackDeepOrange.copy(alpha = 0.05f), Offset(0f, y * step), Offset(size.width, y * step))
+            }
+        }
+
         // Setup Window
         Column(
             modifier = Modifier
-                .width(360.dp)
-                .heightIn(min = 400.dp, max = 550.dp)
-                .background(Color(0xFFC0C0C0)) // Win95 Gray
-                .border(2.dp, Color.White, RoundedCornerShape(0.dp))
-                .border(4.dp, Color(0xFF808080), RoundedCornerShape(0.dp))
-                .padding(4.dp)
+                .width(420.dp)
+                .heightIn(min = 450.dp, max = 600.dp)
+                .background(HackSlate.copy(alpha = 0.9f))
+                .border(1.dp, HackDeepOrange, RoundedCornerShape(2.dp))
+                .padding(1.dp)
+                .border(1.dp, HackDeepOrange.copy(alpha = 0.3f), RoundedCornerShape(2.dp))
         ) {
             // Title Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF000080)) // Win95 Navy
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                    .background(HackDeepOrange.copy(alpha = 0.1f))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Icon(Icons.Default.Settings, null, tint = HackDeepOrange, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    "Steel Vault Setup Wizard",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
+                    "INITIALIZING CORE SYSTEMS",
+                    color = HackDeepOrange,
+                    fontWeight = FontWeight.Black,
                     fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 2.sp,
                     modifier = Modifier.weight(1f)
                 )
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .background(Color(0xFFC0C0C0))
-                        .border(1.dp, Color.White),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(12.dp))
-                }
             }
             
+            // Progress Header
+            LinearProgressIndicator(
+                progress = { (currentStep + 1).toFloat() / totalSteps },
+                modifier = Modifier.fillMaxWidth().height(2.dp),
+                color = HackDeepOrange,
+                trackColor = HackDeepOrange.copy(alpha = 0.1f)
+            )
+
             // Content Area
-            Row(
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(12.dp)
+                    .padding(24.dp)
             ) {
-                // Sidebar Logo area
-                Box(
-                    modifier = Modifier
-                        .width(100.dp)
-                        .fillMaxHeight()
-                        .background(Color(0xFF808080)),
-                    contentAlignment = Alignment.TopCenter
-                ) {
-                   Text(
-                       "STEEL\nVAULT", 
-                       color = Color(0xFFC0C0C0),
-                       fontWeight = FontWeight.Black,
-                       fontSize = 20.sp,
-                       modifier = Modifier.padding(top = 20.dp)
-                   )
-                }
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
                 // Step Content
                 Box(modifier = Modifier.weight(1f)) {
                     when (currentStep) {
@@ -116,25 +113,22 @@ fun SetupWizardScreen(viewModel: FileOrganizerViewModel) {
                 }
             }
             
-            // Divider
-            HorizontalDivider(color = Color(0xFF808080), thickness = 1.dp)
-            HorizontalDivider(color = Color.White, thickness = 1.dp)
-            
             // Bottom Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
+                    .background(HackBlack.copy(alpha = 0.5f))
+                    .padding(16.dp),
                 horizontalArrangement = Arrangement.End
             ) {
                 RetroButton(
-                    text = "Back", 
+                    text = "REVERT", 
                     enabled = currentStep > 0,
                     onClick = { currentStep-- }
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 RetroButton(
-                    text = if (currentStep == totalSteps - 1) "Finish" else "Next >",
+                    text = if (currentStep == totalSteps - 1) "EXECUTE" else "PROCEED >>",
                     enabled = true,
                     onClick = { 
                         if (currentStep < totalSteps - 1) {
@@ -143,11 +137,6 @@ fun SetupWizardScreen(viewModel: FileOrganizerViewModel) {
                             viewModel.completeSetup()
                         }
                     }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                RetroButton(
-                    text = "Cancel",
-                    onClick = { /* Could close app */ }
                 )
             }
         }
@@ -158,23 +147,37 @@ fun SetupWizardScreen(viewModel: FileOrganizerViewModel) {
 fun WelcomeStep() {
     Column {
         Text(
-            "Welcome to the Steel Vault Setup Wizard",
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = Color.Black
+            "ESTABLISHING NEURAL LINK",
+            fontWeight = FontWeight.Black,
+            fontSize = 18.sp,
+            color = HackCyan,
+            fontFamily = FontFamily.Monospace,
+            letterSpacing = 1.sp
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            "This wizard will help you configure the Steel Vault file intelligence engine and backend services.",
-            fontSize = 12.sp,
-            color = Color.Black
+            "Welcome to the Steel Vault system interface. This sequence will synchronize the file intelligence engine and establish secure backend protocols.",
+            fontSize = 13.sp,
+            color = TextSilver,
+            lineHeight = 20.sp,
+            fontFamily = FontFamily.Monospace
         )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            "To continue, click Next.",
-            fontSize = 12.sp,
-            color = Color.Black
-        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .background(HackDeepOrange.copy(alpha = 0.05f), RoundedCornerShape(2.dp))
+                .border(1.dp, HackDeepOrange.copy(alpha = 0.1f), RoundedCornerShape(2.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+           Text(
+               "STATUS: STANDBY",
+               color = HackDeepOrange.copy(alpha = 0.5f),
+               fontFamily = FontFamily.Monospace,
+               fontSize = 10.sp
+           )
+        }
     }
 }
 
@@ -185,7 +188,7 @@ fun PermissionsStep() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Environment.isExternalStorageManager()
         } else {
-            false // Fallback for older
+            false
         }
     ) }
     
@@ -199,22 +202,24 @@ fun PermissionsStep() {
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         Text(
-            "System Permissions",
+            "PROTOCOL AUTHORIZATION",
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
-            color = Color.Black
+            color = HackCyan,
+            fontFamily = FontFamily.Monospace
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            "Steel Vault requires access to your storage to analyze and organize files.",
+            "Steel Vault requires absolute indexing authority over the local data clusters.",
             fontSize = 11.sp,
-            color = Color.Black
+            color = TextSteelSecondary,
+            fontFamily = FontFamily.Monospace
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         
         PermissionItem(
-            title = "All Files Access",
-            description = "Required for full storage analysis and vault operations.",
+            title = "ROOT STORAGE ACCESS",
+            description = "Allows the AI engine to restructure and optimize file hierarchies.",
             isGranted = hasAllFilesAccess,
             onAction = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -225,18 +230,6 @@ fun PermissionsStep() {
                 }
             }
         )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            var hasNotificationPermission by remember { mutableStateOf(false) } // Simplification
-            PermissionItem(
-                title = "Notifications",
-                description = "Used for scan progress and system alerts.",
-                isGranted = hasNotificationPermission,
-                onAction = { /* Trigger notification request */ }
-            )
-        }
     }
 }
 
@@ -245,39 +238,54 @@ fun TermuxStep() {
     val context = LocalContext.current
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         Text(
-            "Termux Backend Configuration",
+            "BACKEND INTEGRATION",
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
-            color = Color.Black
+            color = HackCyan,
+            fontFamily = FontFamily.Monospace
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            "The optional Termux backend provides advanced Linux CLI tools for file deduplication and processing.",
+            "Deploying the Termux bridge enables advanced cryptographic and CLI-based file operations.",
             fontSize = 11.sp,
-            color = Color.Black
+            color = TextSteelSecondary,
+            fontFamily = FontFamily.Monospace
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         
-        Text(
-            "CRITICAL: Manual Action Required",
-            fontWeight = FontWeight.Bold,
-            fontSize = 11.sp,
-            color = Color.Red
-        )
-        Text(
-            "1. Open Termux app\n2. Run this command:\n   mkdir -p ~/.termux && echo \"allow-external-apps = true\" >> ~/.termux/termux.properties\n3. EXIT Termux and restart it.",
-            fontSize = 10.sp,
-            color = Color.Black,
-            lineHeight = 14.sp
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(HackBlack)
+                .border(1.dp, DangerRed.copy(alpha = 0.5f), RoundedCornerShape(2.dp))
+                .padding(12.dp)
+        ) {
+            Column {
+                Text(
+                    "CRITICAL: EXTERNAL LINK REQUIRED",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    color = DangerRed,
+                    fontFamily = FontFamily.Monospace
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "1. Access Termux Node\n2. Inject authorization vector:\n   mkdir -p ~/.termux && echo \"allow-external-apps = true\" >> ~/.termux/termux.properties\n3. Restart Node.",
+                    fontSize = 10.sp,
+                    color = TextSilver,
+                    lineHeight = 16.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         
         val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
         val setupCommand = "mkdir -p ~/.termux && echo \"allow-external-apps = true\" >> ~/.termux/termux.properties"
 
         RetroButton(
-            text = "Copy Setup Command",
+            text = "COPY LINK VECTOR",
             onClick = {
                 clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(setupCommand))
             }
@@ -287,25 +295,30 @@ fun TermuxStep() {
 
 @Composable
 fun CompletionStep(viewModel: FileOrganizerViewModel) {
-    Column {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            "Completing Setup",
+            "SYNCHRONIZATION COMPLETE",
             fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = Color.Black
+            fontSize = 16.sp,
+            color = LaserEmerald,
+            fontFamily = FontFamily.Monospace,
+            letterSpacing = 1.sp
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
-            "Steel Vault is now ready to use. Your initial scan will begin once you enter the desktop.",
+            "System is now ready to manifest. Initial scan sequence will trigger upon entering the desktop environment.",
             fontSize = 12.sp,
-            color = Color.Black
+            color = TextSilver,
+            textAlign = TextAlign.Center,
+            fontFamily = FontFamily.Monospace,
+            lineHeight = 18.sp
         )
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(40.dp))
         Icon(
             Icons.Default.Check, 
             contentDescription = null, 
-            tint = Color(0xFF008000),
-            modifier = Modifier.size(48.dp).align(Alignment.CenterHorizontally)
+            tint = LaserEmerald,
+            modifier = Modifier.size(64.dp)
         )
     }
 }
@@ -320,19 +333,19 @@ fun PermissionItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Color(0xFF808080))
-            .background(Color.White)
-            .padding(8.dp),
+            .border(1.dp, if (isGranted) LaserEmerald.copy(alpha = 0.3f) else HackDeepOrange.copy(alpha = 0.3f), RoundedCornerShape(2.dp))
+            .background(HackSlate.copy(alpha = 0.5f))
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.Black)
-            Text(description, fontSize = 9.sp, color = Color.Gray)
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = if (isGranted) LaserEmerald else HackDeepOrange, fontFamily = FontFamily.Monospace)
+            Text(description, fontSize = 9.sp, color = TextSteelMuted, fontFamily = FontFamily.Monospace)
         }
         if (isGranted) {
-            Icon(Icons.Default.Check, contentDescription = null, tint = Color(0xFF008000), modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.Check, contentDescription = null, tint = LaserEmerald, modifier = Modifier.size(20.dp))
         } else {
-            RetroButton(text = "Grant", onClick = onAction)
+            RetroButton(text = "GRANT", onClick = onAction)
         }
     }
 }
@@ -346,19 +359,18 @@ fun RetroButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        shape = RoundedCornerShape(0.dp),
+        shape = RoundedCornerShape(2.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFFC0C0C0),
-            contentColor = if (enabled) Color.Black else Color.Gray,
-            disabledContainerColor = Color(0xFFC0C0C0),
-            disabledContentColor = Color.Gray
+            containerColor = HackDeepOrange.copy(alpha = 0.1f),
+            contentColor = if (enabled) HackDeepOrange else TextSteelMuted,
+            disabledContainerColor = Color.Transparent,
+            disabledContentColor = TextSteelMuted
         ),
         modifier = Modifier
-            .height(24.dp)
-            .border(1.dp, if (enabled) Color.White else Color.Gray, RoundedCornerShape(0.dp))
-            .padding(0.dp),
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+            .height(32.dp)
+            .border(1.dp, if (enabled) HackDeepOrange else TextSteelMuted.copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
     ) {
-        Text(text, fontSize = 10.sp, fontWeight = FontWeight.Normal)
+        Text(text, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, letterSpacing = 1.sp)
     }
 }
