@@ -38,8 +38,9 @@ jobs:
         run: |
           mkdir -p app/build/generated
 
+          rm -f app/build/generated/github-release-key.jks
+
           keytool -genkeypair \
-            -v \
             -keystore app/build/generated/github-release-key.jks \
             -storepass github-build-store \
             -keypass github-build-key \
@@ -49,12 +50,14 @@ jobs:
             -validity 10000 \
             -dname "CN=Auto-storage, OU=Build, O=Auto-storage, L=Barstow, ST=California, C=US"
 
+      - name: Verify release keystore
+        run: |
+          keytool -list \
+            -keystore app/build/generated/github-release-key.jks \
+            -storepass github-build-store \
+            -alias github-build
+
       - name: Build Release APK
-        env:
-          KEYSTORE_PATH: ${{ github.workspace }}/app/build/generated/github-release-key.jks
-          STORE_PASSWORD: github-build-store
-          KEY_ALIAS: github-build
-          KEY_PASSWORD: github-build-key
         run: ./gradlew assembleRelease
 
       - name: Upload Release APK
