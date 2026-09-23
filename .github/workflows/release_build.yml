@@ -2,9 +2,9 @@ name: Android Release Build
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   workflow_dispatch:
 
 jobs:
@@ -12,8 +12,9 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
+
     runs-on: ${{ matrix.os }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,19 +22,39 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: "21"
+          distribution: "temurin"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: latest
-          packages: 'platforms;android-35 platform-tools build-tools;35.0.0'
+          packages: "platforms;android-35 platform-tools build-tools;35.0.0"
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Generate release keystore
+        run: |
+          mkdir -p app/build/generated
+
+          keytool -genkeypair \
+            -v \
+            -keystore app/build/generated/github-release-key.jks \
+            -storepass github-build-store \
+            -keypass github-build-key \
+            -alias github-build \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Auto-storage, OU=Build, O=Auto-storage, L=Barstow, ST=California, C=US"
+
       - name: Build Release APK
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/app/build/generated/github-release-key.jks
+          STORE_PASSWORD: github-build-store
+          KEY_ALIAS: github-build
+          KEY_PASSWORD: github-build-key
         run: ./gradlew assembleRelease
 
       - name: Upload Release APK
@@ -42,4 +63,4 @@ jobs:
           name: release-apk
           path: app/build/outputs/apk/release/*.apk
           retention-days: 14
-          if-no-files-found: warn
+          if-no-files-found: error
