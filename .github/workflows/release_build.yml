@@ -37,13 +37,12 @@ jobs:
       - name: Generate release keystore
         run: |
           mkdir -p app/build/generated
-
           rm -f app/build/generated/github-release-key.jks
 
           keytool -genkeypair \
             -keystore app/build/generated/github-release-key.jks \
-            -storepass github-build-store \
-            -keypass github-build-key \
+            -storepass github-build-password \
+            -keypass github-build-password \
             -alias github-build \
             -keyalg RSA \
             -keysize 2048 \
@@ -54,11 +53,11 @@ jobs:
         run: |
           keytool -list \
             -keystore app/build/generated/github-release-key.jks \
-            -storepass github-build-store \
+            -storepass github-build-password \
             -alias github-build
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease
+        run: ./gradlew clean assembleRelease
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
