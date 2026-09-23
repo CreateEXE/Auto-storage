@@ -22,14 +22,10 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystorePath =
-        System.getenv("KEYSTORE_PATH")
-          ?: "${rootDir}/build/generated/github-release-key.jks"
-
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD") ?: "github-build-store"
-      keyAlias = System.getenv("KEY_ALIAS") ?: "github-build"
-      keyPassword = System.getenv("KEY_PASSWORD") ?: "github-build-key"
+      storeFile = file("${rootDir}/app/build/generated/github-release-key.jks")
+      storePassword = "github-build-store"
+      keyAlias = "github-build"
+      keyPassword = "github-build-key"
     }
   }
 
@@ -47,7 +43,7 @@ android {
     }
 
     debug {
-      // Debug builds use the Android Gradle Plugin's default debug signing.
+      // Android Gradle Plugin supplies the normal debug signing configuration.
     }
   }
 
