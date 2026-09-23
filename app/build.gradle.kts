@@ -21,11 +21,15 @@ android {
   }
 
   signingConfigs {
-    create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
+    create("release") {
+      val keystorePath =
+        System.getenv("KEYSTORE_PATH")
+          ?: "${rootDir}/build/generated/github-release-key.jks"
+
+      storeFile = file(keystorePath)
+      storePassword = System.getenv("STORE_PASSWORD") ?: "github-build-store"
+      keyAlias = System.getenv("KEY_ALIAS") ?: "github-build"
+      keyPassword = System.getenv("KEY_PASSWORD") ?: "github-build-key"
     }
   }
 
@@ -39,13 +43,11 @@ android {
         "proguard-rules.pro"
       )
 
-      // Use the existing debug keystore so GitHub Actions
-      // does not require a missing release .jks file.
-      signingConfig = signingConfigs.getByName("debugConfig")
+      signingConfig = signingConfigs.getByName("release")
     }
 
     debug {
-      signingConfig = signingConfigs.getByName("debugConfig")
+      // Debug builds use the Android Gradle Plugin's default debug signing.
     }
   }
 
@@ -71,7 +73,6 @@ android {
   }
 }
 
-// Configure the Secrets Gradle Plugin to use .env and .env.example files.
 secrets {
   propertiesFileName = ".env"
   defaultPropertiesFileName = ".env.example"
