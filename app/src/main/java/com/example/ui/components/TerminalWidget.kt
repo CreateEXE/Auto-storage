@@ -1,91 +1,107 @@
 package com.example.ui.components
 
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import com.example.termux.TermuxCommandReceiver
-import com.example.ui.theme.SteelSurfaceContainer
+import com.example.ui.FileOrganizerViewModel
+import com.example.ui.theme.GunmetalBackground
+import com.example.ui.theme.SteelBorder
 import com.example.ui.theme.TextSilver
 import com.example.ui.theme.TextSteelMuted
 
 @Composable
 fun TerminalWidget(
-    onRemove: () -> Unit,
-    isHeld: Boolean = false
+    viewModel: FileOrganizerViewModel,
+    onClose: () -> Unit
 ) {
-    val context = LocalContext.current
-    val logs = remember { mutableStateListOf<String>() }
+    var command by remember { mutableStateOf("") }
+    val logs = remember { mutableStateListOf<String>("Termux Terminal Environment.", "Note: Ensure 'Allow external apps' is enabled in Termux settings.") }
 
-    DisposableEffect(Unit) {
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val stdout = intent?.getStringExtra(TermuxCommandReceiver.EXTRA_STDOUT) ?: ""
-                val stderr = intent?.getStringExtra(TermuxCommandReceiver.EXTRA_STDERR) ?: ""
-                val exitCode = intent?.getIntExtra(TermuxCommandReceiver.EXTRA_EXIT_CODE, -1) ?: -1
-                
-                if (stdout.isNotBlank()) logs.add("> $stdout")
-                if (stderr.isNotBlank()) logs.add("! $stderr")
-                if (exitCode != -1) logs.add("Exit: $exitCode")
-            }
-        }
-        
-        ContextCompat.registerReceiver(
-            context,
-            receiver,
-            IntentFilter(TermuxCommandReceiver.ACTION_COMMAND_RESULT),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-        
-        onDispose {
-            context.unregisterReceiver(receiver)
-        }
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(8.dp),
-        shape = RoundedCornerShape(12.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(GunmetalBackground)
+            .padding(16.dp)
     ) {
-        Column(
+        // Output Area
+        Surface(
             modifier = Modifier
-                .background(SteelSurfaceContainer)
-                .padding(16.dp)
+                .weight(1f)
+                .fillMaxWidth(),
+            color = Color.Black,
+            shape = RoundedCornerShape(8.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, SteelBorder)
         ) {
-            Text("Termux Command Logs", style = MaterialTheme.typography.titleSmall, color = TextSilver)
-            Spacer(modifier = Modifier.height(8.dp))
-            Box(
+            LazyColumn(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .background(Color.Black, RoundedCornerShape(8.dp))
+                    .fillMaxSize()
                     .padding(8.dp)
             ) {
-                LazyColumn {
-                    items(logs) { log ->
-                        Text(
-                            text = log,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 11.sp,
-                            color = if (log.startsWith("!")) Color.Red else Color.Green
-                        )
+                items(logs) { log ->
+                    Text(
+                        text = log,
+                        color = if (log.startsWith(">")) Color.Cyan else if (log.startsWith("!")) Color.Red else Color.Green,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Input Area
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "$ ",
+                color = Color.Green,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 14.sp
+            )
+            
+            OutlinedTextField(
+                value = command,
+                onValueChange = { command = it },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("enter shell command...", fontSize = 12.sp, color = TextSteelMuted) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White
+                ),
+                singleLine = true
+            )
+            
+            IconButton(
+                onClick = {
+                    if (command.isNotBlank()) {
+                        logs.add("> $command")
+                        // In a real app, we'd use TermuxBridge.runCommand(command)
+                        logs.add("Executing in Termux backend...")
+                        command = ""
                     }
                 }
+            ) {
+                Icon(Icons.Default.PlayArrow, contentDescription = "Run", tint = Color.Cyan)
             }
         }
     }

@@ -7,11 +7,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.data.model.FileMetadata
 import com.example.ui.theme.SteelSurfaceContainer
 import com.example.ui.theme.TextSilver
+import com.example.ui.theme.TextSteelMuted
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottomAxis
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStartAxis
@@ -32,6 +34,7 @@ fun StorageBreakdownWidget(
     val modelProducer = remember { CartesianChartModelProducer.build() }
     
     LaunchedEffect(storageBreakdown) {
+        if (storageBreakdown.isEmpty()) return@LaunchedEffect
         withContext(Dispatchers.Default) {
             modelProducer.runTransaction {
                 columnSeries {
@@ -52,15 +55,21 @@ fun StorageBreakdownWidget(
         ) {
             Text("Storage Breakdown (MB)", style = MaterialTheme.typography.titleSmall, color = TextSilver)
             Spacer(modifier = Modifier.height(8.dp))
-            CartesianChartHost(
-                chart = rememberCartesianChart(
-                    rememberColumnCartesianLayer(),
-                    startAxis = rememberStartAxis(),
-                    bottomAxis = rememberBottomAxis()
-                ),
-                modelProducer = modelProducer,
-                modifier = Modifier.height(200.dp)
-            )
+            if (storageBreakdown.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                    Text("No entities indexed yet", color = TextSteelMuted, style = MaterialTheme.typography.bodySmall)
+                }
+            } else {
+                CartesianChartHost(
+                    chart = rememberCartesianChart(
+                        rememberColumnCartesianLayer(),
+                        startAxis = rememberStartAxis(),
+                        bottomAxis = rememberBottomAxis()
+                    ),
+                    modelProducer = modelProducer,
+                    modifier = Modifier.height(200.dp)
+                )
+            }
         }
     }
 }

@@ -327,36 +327,57 @@ class FileScannerEngine(
         onProgress: ((currentFile: String, scannedCount: Int) -> Unit)? = null
     ): List<FileMetadata> = withContext(Dispatchers.IO) {
         val rawList = mutableListOf<RawFileMetadata>()
+        
+        // Scan Downloads
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         if (downloadsDir != null && downloadsDir.exists() && downloadsDir.canRead()) {
             val filesFound = mutableListOf<File>()
-            collectFilesRecursive(downloadsDir, filesFound, maxDepth = 2)
-            for ((index, file) in filesFound.take(100).withIndex()) {
-                onProgress?.invoke(file.name, index + 1)
-                try {
-                    val hash = calculateFileHash(file)
-                    val ext = file.extension.lowercase()
-                    rawList.add(
-                        RawFileMetadata(
-                            uri = Uri.fromFile(file).toString(),
-                            name = file.name,
-                            extension = ext,
-                            mimeType = getMimeType(ext),
-                            sizeBytes = file.length(),
-                            createdAt = file.lastModified(),
-                            modifiedAt = file.lastModified(),
-                            fileHash = hash,
-                            category = FileCategory.fromExtension(ext).name,
-                            contentSnippet = null,
-                            isSample = false
-                        )
-                    )
-                } catch (e: Exception) {
-                    // ignore
-                }
+            collectFilesRecursive(downloadsDir, filesFound, maxDepth = 3)
+            rawList.addAll(scanFileList(filesFound, onProgress))
+        }
+
+        // Scan full storage if MANAGE_EXTERNAL_STORAGE is granted
+        if (Environment.isExternalStorageManager()) {
+            val root = Environment.getExternalStorageDirectory()
+            if (root != null && root.exists() && root.canRead()) {
+                val filesFound = mutableListOf<File>()
+                // We limit depth to avoid infinite loops or extremely slow scans of everything
+                collectFilesRecursive(root, filesFound, maxDepth = 4)
+                rawList.addAll(scanFileList(filesFound, onProgress))
             }
         }
-        return@withContext processRawFilesIntoEntities(rawList, isOnline)
+
+        return@withContext processRawFilesIntoEntities(rawList.distinctBy { it.uri }, isOnline)
+    }
+
+    private suspend fun scanFileList(
+        files: List<File>,
+        onProgress: ((currentFile: String, scannedCount: Int) -> Unit)?
+    ): List<RawFileMetadata> {
+        val list = mutableListOf<RawFileMetadata>()
+        for ((index, file) in files.withIndex()) {
+            onProgress?.invoke(file.name, index + 1)
+            try {
+                val hash = calculateFileHash(file)
+                val ext = file.extension.lowercase()
+                list.add(
+                    RawFileMetadata(
+                        uri = Uri.fromFile(file).toString(),
+                        name = file.name,
+                        extension = ext,
+                        mimeType = getMimeType(ext),
+                        sizeBytes = file.length(),
+                        createdAt = file.lastModified(),
+                        modifiedAt = file.lastModified(),
+                        fileHash = hash,
+                        category = FileCategory.fromExtension(ext).name,
+                        contentSnippet = null,
+                        isSample = false
+                    )
+                )
+            } catch (_: Exception) { }
+        }
+        return list
     }
 
     /**

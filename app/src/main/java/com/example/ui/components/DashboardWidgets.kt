@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -150,16 +151,25 @@ fun SearchWidget(
 
 @Composable
 fun StorageBreakdownChart(categorySizes: Map<FileCategory, Long>) {
-    val categories = FileCategory.values()
+    val categories = FileCategory.entries
     val entries = categories.map { category ->
         (categorySizes[category] ?: 0L) / (1024 * 1024).toFloat()
     }
     
-    val model = CartesianChartModel(
-        ColumnCartesianLayerModel.build {
-            series(entries)
+    if (entries.isEmpty()) {
+        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+            Text("No data", color = TextSteelMuted)
         }
-    )
+        return
+    }
+
+    val model = remember(entries) {
+        CartesianChartModel(
+            ColumnCartesianLayerModel.build {
+                series(entries)
+            }
+        )
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(

@@ -35,6 +35,9 @@ class SettingsRepository(context: Context) {
         val defaultCasing = prefs.getString(KEY_DEFAULT_CASING, "TITLE_CASE") ?: "TITLE_CASE"
         val defaultSpaceReplacement = prefs.getString(KEY_DEFAULT_SPACE_REPLACEMENT, "_") ?: "_"
         val groupDuplicates = prefs.getBoolean(KEY_GROUP_DUPLICATES_BY_HASH, true)
+        val pinnedAppsString = prefs.getString(KEY_PINNED_APPS, "") ?: ""
+        val pinnedApps = if (pinnedAppsString.isEmpty()) emptyList() else pinnedAppsString.split(",")
+        val setupCompleted = prefs.getBoolean(KEY_SETUP_COMPLETED, false)
 
         return UserSettings(
             autoSortEnabled = autoSortEnabled,
@@ -46,8 +49,28 @@ class SettingsRepository(context: Context) {
             enableGeminiOnlineEnrichment = enableGemini,
             defaultCasing = defaultCasing,
             defaultSpaceReplacement = defaultSpaceReplacement,
-            groupDuplicatesByHash = groupDuplicates
+            groupDuplicatesByHash = groupDuplicates,
+            pinnedApps = pinnedApps,
+            setupCompleted = setupCompleted
         )
+    }
+
+    fun updateUserSettings(settings: UserSettings) {
+        prefs.edit().apply {
+            putBoolean(KEY_AUTO_SORT_ENABLED, settings.autoSortEnabled)
+            putString(KEY_DEFAULT_SORT_OPTION, settings.defaultSortOption.name)
+            putString(KEY_AUTO_SORT_MODE, settings.autoSortDestinationMode.name)
+            putBoolean(KEY_AUTO_SORT_ON_SCAN, settings.autoSortOnScan)
+            putBoolean(KEY_AUTO_SUGGEST_RENAMES, settings.autoSuggestRenamesOnScan)
+            putBoolean(KEY_AUTO_HASH_SHA256, settings.autoHashSha256OnScan)
+            putBoolean(KEY_ENABLE_GEMINI, settings.enableGeminiOnlineEnrichment)
+            putString(KEY_DEFAULT_CASING, settings.defaultCasing)
+            putString(KEY_DEFAULT_SPACE_REPLACEMENT, settings.defaultSpaceReplacement)
+            putBoolean(KEY_GROUP_DUPLICATES_BY_HASH, settings.groupDuplicatesByHash)
+            putString(KEY_PINNED_APPS, settings.pinnedApps.joinToString(","))
+            putBoolean(KEY_SETUP_COMPLETED, settings.setupCompleted)
+        }.apply()
+        _settings.value = settings
     }
 
     fun updateAutoSortEnabled(enabled: Boolean) {
@@ -116,5 +139,7 @@ class SettingsRepository(context: Context) {
         private const val KEY_DEFAULT_CASING = "key_default_casing"
         private const val KEY_DEFAULT_SPACE_REPLACEMENT = "key_default_space_replacement"
         private const val KEY_GROUP_DUPLICATES_BY_HASH = "key_group_duplicates_by_hash"
+        private const val KEY_PINNED_APPS = "key_pinned_apps"
+        private const val KEY_SETUP_COMPLETED = "key_setup_completed"
     }
 }

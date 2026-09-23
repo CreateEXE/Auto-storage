@@ -31,7 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.termux.TermuxSetupManager
 import com.example.ui.FileOrganizerViewModel
+import com.example.ui.screens.DesktopScreen
 import com.example.ui.screens.HomeScreen
+import androidx.compose.runtime.collectAsState
+import com.example.ui.screens.SetupWizardScreen
 import com.example.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
@@ -48,114 +51,18 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MyApplicationTheme {
-                var showTermuxDialog by remember { mutableStateOf(false) }
-                var showStorageDialog by remember { mutableStateOf(false) }
+                val settings by viewModel.userSettings.collectAsState()
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-
-                        HomeScreen(viewModel = viewModel)
-
-                        FloatingActionButton(
-                            onClick = {
-                                if (!hasFullStorageAccess()) {
-                                    showStorageDialog = true
-                                } else if (termuxSetupManager.isTermuxInstalled()) {
-                                    showTermuxDialog = true
-                                } else {
-                                    Toast.makeText(
-                                        this@MainActivity,
-                                        "Termux not installed",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            },
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(16.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Terminal,
-                                contentDescription = "Termux"
-                            )
+                    if (!settings.setupCompleted) {
+                        SetupWizardScreen(viewModel = viewModel)
+                    } else {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            DesktopScreen(viewModel = viewModel)
                         }
-                    }
-
-                    if (showStorageDialog) {
-                        AlertDialog(
-                            onDismissRequest = {
-                                showStorageDialog = false
-                            },
-                            title = {
-                                Text("Storage Access Required")
-                            },
-                            text = {
-                                Text(
-                                    "Auto-storage needs full file access to scan and organize files across your device."
-                                )
-                            },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        showStorageDialog = false
-                                        openFullStorageAccessSettings()
-                                    }
-                                ) {
-                                    Text("Grant Access")
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(
-                                    onClick = {
-                                        showStorageDialog = false
-                                    }
-                                ) {
-                                    Text("Cancel")
-                                }
-                            }
-                        )
-                    }
-
-                    if (showTermuxDialog) {
-                        AlertDialog(
-                            onDismissRequest = {
-                                showTermuxDialog = false
-                            },
-                            title = {
-                                Text("Termux Integration")
-                            },
-                            text = {
-                                Text("Manage local Termux backend storage.")
-                            },
-                            confirmButton = {
-                                TextButton(
-                                    onClick = {
-                                        if (!hasFullStorageAccess()) {
-                                            showTermuxDialog = false
-                                            showStorageDialog = true
-                                        } else {
-                                            termuxSetupManager.initializeStorage()
-                                            showTermuxDialog = false
-                                        }
-                                    }
-                                ) {
-                                    Text("Setup Storage")
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(
-                                    onClick = {
-                                        termuxSetupManager.openTermux()
-                                        showTermuxDialog = false
-                                    }
-                                ) {
-                                    Text("Open Termux")
-                                }
-                            }
-                        )
                     }
                 }
             }

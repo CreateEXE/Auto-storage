@@ -60,9 +60,11 @@ import com.example.ui.util.metalPlateOverlay
 @Composable
 fun HomeScreen(
     viewModel: FileOrganizerViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialTab: Int = 0,
+    showNavigation: Boolean = true
 ) {
-    var currentTab by remember { mutableIntStateOf(0) }
+    var currentTab by remember { mutableIntStateOf(initialTab) }
     var showDropdownMenu by remember { mutableStateOf(false) }
     var selectedFileForDetail by remember { mutableStateOf<FileMetadata?>(null) }
     var showBatchRenameDialog by remember { mutableStateOf(false) }
@@ -495,12 +497,13 @@ fun HomeScreen(
             )
         },
         bottomBar = {
-            NavigationBar(
-                modifier = Modifier
-                    .metallicPanel(cornerRadius = 16.dp),
-                containerColor = Color.Transparent,
-                tonalElevation = 8.dp
-            ) {
+            if (showNavigation) {
+                NavigationBar(
+                    modifier = Modifier
+                        .metallicPanel(cornerRadius = 16.dp),
+                    containerColor = Color.Transparent,
+                    tonalElevation = 8.dp
+                ) {
                 // 0. Dashboard
                 NavigationBarItem(
                     selected = currentTab == 0,
@@ -619,9 +622,10 @@ fun HomeScreen(
                     modifier = Modifier.testTag("nav_tab_vault")
                 )
             }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { innerPadding ->
+        }
+    },
+    snackbarHost = { SnackbarHost(snackbarHostState) }
+) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -629,6 +633,7 @@ fun HomeScreen(
         ) {
             when (currentTab) {
                 0 -> DashboardTab(
+                    viewModel = viewModel,
                     widgets = dashboardWidgets,
                     searchQuery = searchQuery,
                     onSearchQueryChange = { viewModel.setSearchQuery(it) },
@@ -812,6 +817,7 @@ fun HomeScreen(
 
 @Composable
 private fun DashboardTab(
+    viewModel: FileOrganizerViewModel,
     widgets: List<DashboardWidget>,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
@@ -935,8 +941,8 @@ private fun DashboardTab(
                         isHeld = isHeld
                     )
                     DashboardWidget.TERMINAL -> TerminalWidget(
-                        onRemove = { onRemoveWidget(widget) },
-                        isHeld = isHeld
+                        viewModel = viewModel,
+                        onClose = { onRemoveWidget(widget) }
                     )
                     DashboardWidget.STORAGE_BREAKDOWN -> StorageBreakdownWidget(
                         storageBreakdown = storageBreakdown,

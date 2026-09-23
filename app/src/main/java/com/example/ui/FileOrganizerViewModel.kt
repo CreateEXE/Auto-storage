@@ -361,6 +361,52 @@ class FileOrganizerViewModel(application: Application) : AndroidViewModel(applic
         FileScanService.startScan(getApplication())
     }
 
+    fun scanFullExternalStorage() {
+        viewModelScope.launch {
+            _localIsScanning.value = true
+            _localProgressText.value = "Preparing full storage scan..."
+            try {
+                val scannedFiles = scannerEngine.scanDeviceMediaStore { fileName, count ->
+                    _localProgressText.value = "Scanning #$count: $fileName"
+                }
+                repository.insertFiles(scannedFiles)
+                _localProgressText.value = "Full scan complete: ${scannedFiles.size} files indexed."
+            } catch (e: Exception) {
+                _localProgressText.value = "Full scan failed: ${e.message}"
+            } finally {
+                _localIsScanning.value = false
+            }
+        }
+    }
+
+    fun togglePinnedApp(appName: String) {
+        viewModelScope.launch {
+            val current = userSettings.value.pinnedApps.toMutableList()
+            if (current.contains(appName)) {
+                current.remove(appName)
+            } else {
+                current.add(appName)
+            }
+            settingsRepository.updateUserSettings(userSettings.value.copy(pinnedApps = current))
+        }
+    }
+
+    fun updateSettings(settings: UserSettings) {
+        viewModelScope.launch {
+            settingsRepository.updateUserSettings(settings)
+        }
+    }
+
+    fun toggleVaultLock() {
+        _isVaultLocked.value = !_isVaultLocked.value
+    }
+
+    fun completeSetup() {
+        viewModelScope.launch {
+            settingsRepository.updateUserSettings(userSettings.value.copy(setupCompleted = true))
+        }
+    }
+
     fun applyBatchOperationsToDuplicates(
         file: FileMetadata,
         renameRule: RenamingRuleEntity?,

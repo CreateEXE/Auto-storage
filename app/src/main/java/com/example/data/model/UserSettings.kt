@@ -73,5 +73,7 @@ data class UserSettings(
     val enableGeminiOnlineEnrichment: Boolean = true,
     val defaultCasing: String = "TITLE_CASE", // LOWERCASE, UPPERCASE, TITLE_CASE, SNAKE_CASE
     val defaultSpaceReplacement: String = "_", // "_", "-", " "
-    val groupDuplicatesByHash: Boolean = true
+    val groupDuplicatesByHash: Boolean = true,
+    val pinnedApps: List<String> = emptyList(),
+    val setupCompleted: Boolean = false
 )
