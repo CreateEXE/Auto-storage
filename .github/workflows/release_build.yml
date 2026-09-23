@@ -9,11 +9,7 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -34,30 +30,11 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Generate release keystore
-        run: |
-          mkdir -p app/build/generated
-          rm -f app/build/generated/github-release-key.jks
-
-          keytool -genkeypair \
-            -keystore app/build/generated/github-release-key.jks \
-            -storepass github-build-password \
-            -keypass github-build-password \
-            -alias github-build \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Auto-storage, OU=Build, O=Auto-storage, L=Barstow, ST=California, C=US"
-
-      - name: Verify release keystore
-        run: |
-          keytool -list \
-            -keystore app/build/generated/github-release-key.jks \
-            -storepass github-build-password \
-            -alias github-build
+      - name: Clean previous build
+        run: ./gradlew clean
 
       - name: Build Release APK
-        run: ./gradlew clean assembleRelease
+        run: ./gradlew assembleRelease
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
