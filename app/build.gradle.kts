@@ -6,6 +6,8 @@ plugins {
   alias(libs.plugins.secrets)
 }
 
+import java.io.File
+
 android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
@@ -22,7 +24,28 @@ android {
 
   signingConfigs {
     create("release") {
-      storeFile = file("${rootDir}/app/build/generated/github-release-key.jks")
+      val keystoreFile = file("${rootDir}/app/build/generated/github-release-key.jks")
+
+      if (!keystoreFile.exists()) {
+        keystoreFile.parentFile.mkdirs()
+
+        exec {
+          commandLine(
+            "keytool",
+            "-genkeypair",
+            "-keystore", keystoreFile.absolutePath,
+            "-storepass", "github-build-password",
+            "-keypass", "github-build-password",
+            "-alias", "github-build",
+            "-keyalg", "RSA",
+            "-keysize", "2048",
+            "-validity", "10000",
+            "-dname", "CN=Auto-storage, OU=Build, O=Auto-storage, L=Barstow, ST=California, C=US"
+          )
+        }
+      }
+
+      storeFile = keystoreFile
       storePassword = "github-build-password"
       keyAlias = "github-build"
       keyPassword = "github-build-password"
@@ -43,7 +66,6 @@ android {
     }
 
     debug {
-      // Use the standard Android debug signing configuration.
     }
   }
 
