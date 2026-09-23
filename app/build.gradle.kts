@@ -23,9 +23,9 @@ android {
   signingConfigs {
     create("release") {
       storeFile = file("${rootDir}/app/build/generated/github-release-key.jks")
-      storePassword = "github-build-store"
+      storePassword = "github-build-password"
       keyAlias = "github-build"
-      keyPassword = "github-build-key"
+      keyPassword = "github-build-password"
     }
   }
 
@@ -43,7 +43,7 @@ android {
     }
 
     debug {
-      // Android Gradle Plugin supplies the normal debug signing configuration.
+      // Use the standard Android debug signing configuration.
     }
   }
 
